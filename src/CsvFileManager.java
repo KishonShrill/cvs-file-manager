@@ -9,32 +9,24 @@ public class CsvFileManager {
     public String headerTemplate;
 
     /* Constructors */
-    public CsvFileManager(PrintWriter filePath, String fileName) {
-        /* Initialize GUI *//* Initialize GUI *//* Initialize GUI */
-//        FileManagerGUI FMG = new FileManagerGUI();
-        /* Initialize GUI *//* Initialize GUI *//* Initialize GUI */
+    public CsvFileManager(PrintWriter filePath, String fileName, String[] headerArr) {
+//        FileManagerGUI FMG = new FileManagerGUI(headerArr);
         this.csvFilePath = filePath;
         this.fileName = fileName;
         this.headerTemplate = getHeader();
         populateLinesList();
-        /* Initialize GUI *//* Initialize GUI *//* Initialize GUI */
 //        FMG.setLinesListGUI(this.lines);
-        /* Initialize GUI *//* Initialize GUI *//* Initialize GUI */
     }
 
-    public CsvFileManager(PrintWriter filePath, String fileName, String headerTemplate) {
-        /* Initialize GUI *//* Initialize GUI *//* Initialize GUI */
-//        FileManagerGUI FMG = new FileManagerGUI();
-        /* Initialize GUI *//* Initialize GUI *//* Initialize GUI */
+    public CsvFileManager(PrintWriter filePath, String fileName, String[] headerArr, String headerTemplate) {
+//        FileManagerGUI FMG = new FileManagerGUI(headerArr);
         this.csvFilePath = filePath;
         this.fileName = fileName;
         this.headerTemplate = headerTemplate;
         lines.add(headerTemplate);
         csvFilePath.println(headerTemplate);
         csvFilePath.flush();
-        /* Initialize GUI *//* Initialize GUI *//* Initialize GUI */
 //        FMG.setLinesListGUI(this.lines);
-        /* Initialize GUI *//* Initialize GUI *//* Initialize GUI */
     }
 
     /* Create-Read-Update-Delete-List Methods */
@@ -44,73 +36,55 @@ public class CsvFileManager {
         csvFilePath.flush();
         lines.add(csvLine);
     }
+    public void create(String data_name, String data_id) {
+        String csvLine = String.join(",", data_name, data_id);
+        csvFilePath.println(csvLine);
+        csvFilePath.flush();
+        lines.add(csvLine);
+    }
 
     public void read(int lineNumber) {
-        List<String> result = new ArrayList<>();
+        if (lineNumber >= 0 && lineNumber < lines.size()) {
+            List<String> result = readLine(lineNumber);
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
-            String line;
-            int currentLineNumber = 0;
-
-            while ((line = reader.readLine()) != null) {
-                currentLineNumber++;
-
-                if (currentLineNumber == lineNumber + 1) {
-                    // Found the desired line
-                    String[] columns = line.split(",");
-                    for (String column : columns) {
-                        result.add(column.trim());
-                    }
-                    break; // No need to continue reading
+            if (result != null && !result.isEmpty()) {
+                for (String value : result) {
+                    System.out.print(value + ", ");
                 }
+            } else {
+                System.out.println("Line not found or empty.");
             }
-        } catch (IOException e) {
-            // Handle the exception based on your requirements
-            System.out.println("An error occurred:" + e);
-        }
-
-        /*TODO: Change this later for readability */
-        if (result != null && !result.isEmpty()) {
-            for (String value : result) {
-                System.out.print(value + " ");
-            }
-            System.out.println("\n");
         } else {
-            System.out.println("Line not found or empty.");
+            System.out.println("Invalid line number. No record to read.");
         }
     }
 
-    public void update(int lineNumber, int column, String newData) {
-        // Code to update a specific line in the CSV file
+    public void update(int lineNumber, String[] newData) {
         List<String> currentData = readLine(lineNumber);
 
-        if (currentData != null && column >= 0 && column < currentData.size()) {
-            currentData.set(column, newData);
+        if (currentData != null && newData.length == currentData.size()) {
+            for (int i = 0; i < newData.length; i++) {
+                currentData.set(i, newData[i]);
+            }
             updateLine(lineNumber, currentData);
             updateFile();
         }
     }
 
     public void delete(int lineNumber) {
-        // Code to delete a specific line from the CSV file
-        //TODO: MUST ALSO DELETE DATA IN CSV FILE
         lines.remove(lineNumber);
         updateFile();
     }
 
     public void list() {
-        // Code to retrieve and return a list of all entries in the CSV file
-        // Read existing lines from the file and populate the lines list
         lines.clear();
         populateLinesList();
 
-        for (String line : lines) {
-            System.out.println(line);
+        for (int i = 1; i < lines.size(); i++) {
+            System.out.print(i + ".) ");
+            read(i);
+            System.out.println();
         }
-        System.out.println("");
-
-        //TODO: Make a GUI framework for visual representation
-        //return new ArrayList<>(); // Placeholder, you need to implement this
     }
 
     /**
@@ -121,10 +95,8 @@ public class CsvFileManager {
 
     private String getHeader() {
         if (lines.size() > 0) {
-            // The first element in the 'lines' list is the header
             return lines.get(0);
         } else {
-            // Return an empty string or handle the case where there is no header
             return "";
         }
     }
@@ -187,12 +159,9 @@ public class CsvFileManager {
             // Handle the exception based on your requirements
             System.out.println("An error occurred:" + e);
         }
-
-        // Write the updated lines back to the file
-        updateFile();
     }
 
-    private void updateFile() {
+    public void updateFile() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(fileName))) {
             // Write the lines to the file
             for (String line : lines) {
