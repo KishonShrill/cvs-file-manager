@@ -9,13 +9,10 @@ public class Main {
         String fileName1 = "Student.csv", fileName2 = "Course.csv";
         String[] studentArr = {"Name", "Id#", "Year Lvl", "Gender", "Course"};
         String[] courseArr = {"Name", "Id#"};
+
+
         /*TODO: MAKE A GUI FOR WELCOME WINDOW */
-        /*TODO: MAKE A GUI FOR WELCOME WINDOW */
-        /*TODO: MAKE A GUI FOR WELCOME WINDOW */
-        /*TODO: MAKE A GUI FOR WELCOME WINDOW */
-        /*TODO: MAKE A GUI FOR WELCOME WINDOW */
-        /*TODO: MAKE A GUI FOR WELCOME WINDOW */
-        /*TODO: MAKE A GUI FOR WELCOME WINDOW */
+
 
         FileOutputStream fos1, fos2;
         PrintWriter students, courses;
