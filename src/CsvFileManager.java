@@ -5,28 +5,24 @@ import java.util.List;
 public class CsvFileManager {
     final PrintWriter csvFilePath;
     final String fileName;
-    public List<String> lines = new ArrayList<>();
+    public static List<String> lines = new ArrayList<>();
     public String headerTemplate;
 
     /* Constructors */
-    public CsvFileManager(PrintWriter filePath, String fileName, String[] headerArr) {
-//        FileManagerGUI FMG = new FileManagerGUI(headerArr);
+    public CsvFileManager(PrintWriter filePath, String fileName) {
         this.csvFilePath = filePath;
         this.fileName = fileName;
         this.headerTemplate = getHeader();
         populateLinesList();
-//        FMG.setLinesListGUI(this.lines);
     }
 
-    public CsvFileManager(PrintWriter filePath, String fileName, String[] headerArr, String headerTemplate) {
-//        FileManagerGUI FMG = new FileManagerGUI(headerArr);
+    public CsvFileManager(PrintWriter filePath, String fileName, String headerTemplate) {
         this.csvFilePath = filePath;
         this.fileName = fileName;
         this.headerTemplate = headerTemplate;
         lines.add(headerTemplate);
         csvFilePath.println(headerTemplate);
         csvFilePath.flush();
-//        FMG.setLinesListGUI(this.lines);
     }
 
     /* Create-Read-Update-Delete-List Methods */
@@ -41,6 +37,11 @@ public class CsvFileManager {
         csvFilePath.println(csvLine);
         csvFilePath.flush();
         lines.add(csvLine);
+    }
+    public void create(String dataLine) {
+        csvFilePath.println(dataLine);
+        csvFilePath.flush();
+        lines.add(dataLine);
     }
 
     public void read(int lineNumber) {
@@ -94,8 +95,8 @@ public class CsvFileManager {
      **/
 
     private String getHeader() {
-        if (lines.size() > 0) {
-            return lines.get(0);
+        if (!lines.isEmpty()) {
+            return lines.getFirst();
         } else {
             return "";
         }
@@ -140,9 +141,7 @@ public class CsvFileManager {
         return result;
     }
     private void updateLine(int lineNumber, List<String> newData) {
-        // Code to update a specific line in the CSV file
-        List<String> updatedLines = new ArrayList<>();
-
+//        List<String> updatedLines = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
             int currentLineNumber = 0;
 
@@ -150,7 +149,6 @@ public class CsvFileManager {
                 currentLineNumber++;
 
                 if (currentLineNumber == lineNumber + 1) {
-                    // Update the line with new data
                     lines.set(i, String.join(",", newData));
                     break;
                 }
@@ -182,6 +180,9 @@ public class CsvFileManager {
     }
 
     public List<String> getLinesList() {
-        return this.lines;
+        return lines;
+    }
+    public void setLinesList(List<String> lines) {
+        CsvFileManager.lines = lines;
     }
 }
