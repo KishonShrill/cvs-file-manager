@@ -51,7 +51,7 @@ public class FileManagerGUI extends JFrame {
 
         initializeUI(fileName);
         initializeTableModel(header);
-        initializeListeners(fileObject, fileName);
+        initializeListeners(fileObject);
 
         // Set up JFrame properties
         setTitle("CSV File Manager");
@@ -132,7 +132,7 @@ public class FileManagerGUI extends JFrame {
         }
         tableModel.fireTableDataChanged();
     }
-    private void initializeListeners(PrintWriter fileObject, String fileName) {
+    private void initializeListeners(PrintWriter fileObject) {
         addItemButton.addActionListener(e -> {
             // Use the existing tableModel instead of creating a new one
             tableModel.addRow(new Object[]{textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), textCourse.getText()});

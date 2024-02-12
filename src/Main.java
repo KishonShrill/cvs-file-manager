@@ -13,7 +13,7 @@ public class Main {
     public static FileOutputStream fos1, fos2;
     public static PrintWriter students, courses;
     public static CsvFileManager student, course;
-    public static boolean activateGUI = false;
+    public static boolean activateGUI = true;
     public static boolean switchFile = false;
 
     public static void main(String[] args) throws FileNotFoundException {
