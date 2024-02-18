@@ -8,8 +8,6 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +20,7 @@ public class FileManagerGUI extends JFrame {
     final FileManagerSwitchedListener switchListener;
     final JLabel fileManager__title = new JLabel();
     private JPanel panelSideRight;
+    private JTable dataTable;
     final JButton addItemButton = createButton("Add Item", Color.BLUE);
     final JButton editButton = createButton("Edit", Color.LIGHT_GRAY);
     final JButton finishButton = createButton("Finish", Color.GREEN);
@@ -51,14 +50,14 @@ public class FileManagerGUI extends JFrame {
         }
 
         initializeUI(fileName);
-        initializeTableModel(header);
+        initializeTableModel(header, fileName);
         initializeListeners(fileObject);
 
         // Set up JFrame properties
         setTitle("CSV File Manager");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pack();
-        setLocationRelativeTo(null); // Center the frame
+        setLocationRelativeTo(null);
         setVisible(true);
 
         tableModel.fireTableDataChanged();
@@ -66,7 +65,7 @@ public class FileManagerGUI extends JFrame {
 
     private void initializeUI(String fileName) {
         JPanel panelMain = new JPanel(new BorderLayout());
-        int margin = 20; // Set the margin size
+        int margin = 20;
         panelMain.setBorder(BorderFactory.createEmptyBorder(margin, margin-10, margin, margin-10));
         panelMain.setMinimumSize(new Dimension(840, 500));
         setContentPane(panelMain);
@@ -114,56 +113,44 @@ public class FileManagerGUI extends JFrame {
         panelFooter.add(panelFooterRight, BorderLayout.EAST);
         panelSideRight.add(panelFooter, BorderLayout.SOUTH);
     }
-    private void initializeTableModel(String[] header) {
-        // Initialize the table model with column names
-        tableModel = new DefaultTableModel(null, header) {
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                return String.class; // Set column class to String for all columns
-            }
-        };
-        JTable dataTable = new JTable(tableModel);
+    private void initializeTableModel(String[] header, String fileName) {
+        if (fileName == "Course.csv") {
+            tableModel = new DefaultTableModel(null, header);
+            dataTable = new JTable(tableModel);
+        }
+        else {
+            tableModel = new DefaultTableModel(null, header) {
+                @Override
+                public Class<?> getColumnClass(int columnIndex) {
+                    return String.class;
+                }
+            };
+            dataTable = new JTable(tableModel);
 
-        // Custom cell renderer for the Course column
-        DefaultTableCellRenderer courseRenderer = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(
+            DefaultTableCellRenderer courseRenderer = new DefaultTableCellRenderer() {
+                @Override
+                public Component getTableCellRendererComponent(
                     JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
 
-                // Call the superclass method for default rendering behavior
-                Component cellComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-
-                // Check if the cell is empty
-                if (value == null || value.toString().isEmpty()) {
-                    cellComponent.setBackground(Color.RED);
-                } else {
+                    Component cellComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                     String courseId = value.toString().trim();
 
-                    // Check if the column is the course column
                     if (column == 4) {
-                        System.out.println("Row: " + row + ", Course ID: " + courseId); // Debug print statement
-
-                        // Check if the course exists
-                        if (courseIds.contains(courseId) && (courseId != "Course Id#")) {
-                            // Check if the course is available
+                        if (!"Not Enrolled".equals(courseId)) {
                             if (isCourseAvailable(courseId)) {
                                 cellComponent.setBackground(Color.GREEN);
                             } else {
                                 cellComponent.setBackground(Color.YELLOW);
                             }
                         } else {
-                            // Course doesn't exist
-                            System.out.println("Row: " + row + ", Course doesn't exist"); // Debug print statement
-                            cellComponent.setBackground(Color.YELLOW);
+                            cellComponent.setBackground(Color.RED);
                         }
                     }
+                    return cellComponent;
                 }
-
-                return cellComponent;
-            }
-        };
-        dataTable.getColumnModel().getColumn(4).setCellRenderer(courseRenderer);
-
+            };
+            dataTable.getColumnModel().getColumn(4).setCellRenderer(courseRenderer);
+        }
         JScrollPane scrollPane = new JScrollPane(dataTable);
         panelSideRight.add(scrollPane, BorderLayout.CENTER);
         setLinesListGUI(CFM.getLinesList());
@@ -193,7 +180,6 @@ public class FileManagerGUI extends JFrame {
                     updatedRowData[j] = rowData[j];
                 }
             }
-
             tableModel.addRow(updatedRowData);
         }
         tableModel.fireTableDataChanged();
@@ -201,8 +187,13 @@ public class FileManagerGUI extends JFrame {
 
     private void initializeListeners(PrintWriter fileObject) {
         addItemButton.addActionListener(e -> {
-            // Use the existing tableModel instead of creating a new one
-            tableModel.addRow(new Object[]{textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), textCourse.getText()});
+            if (textCourse.getText().isEmpty()) {
+                textCourse.setText("Not Enrolled");
+            }
+            CFM.create(textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), textCourse.getText());
+            updateTableModel();
+            tableModel.fireTableDataChanged();
+            textName.setText(""); textId.setText(""); textYearLvl.setText(""); textGender.setText(""); textCourse.setText("");
         });
         addItemButton.addKeyListener(new KeyListener() {
             @Override
@@ -217,35 +208,32 @@ public class FileManagerGUI extends JFrame {
             public void keyReleased(KeyEvent e) {}
         });
 
-        switchButton.addActionListener(e -> {
-            CFM.clearCsvFile();
-            for (int i = 1; i < tableModel.getRowCount(); i++) {
-                StringBuilder csvLine = new StringBuilder();
-                for (int j = 0; j < tableModel.getColumnCount(); j++) {
-                    csvLine.append(tableModel.getValueAt(i, j));
-                    if (j < tableModel.getColumnCount() - 1) {
-                        csvLine.append(",");
-                    }
-                }
-                CFM.create(csvLine.toString());
+        editButton.addActionListener(e -> {
+            int selectedRow = dataTable.getSelectedRow();
+            if (selectedRow != -1) {
+                String name = (String) tableModel.getValueAt(selectedRow, 0);
+                String id = (String) tableModel.getValueAt(selectedRow, 1);
+                String yearLvl = (String) tableModel.getValueAt(selectedRow, 2);
+                String gender = (String) tableModel.getValueAt(selectedRow, 3);
+                String course = (String) tableModel.getValueAt(selectedRow, 4);
+
+                showEditDialog(name, id, yearLvl, gender, course, selectedRow);
+            } else {
+                JOptionPane.showMessageDialog(null, "Please select a row to edit.");
             }
+        });
 
-//            Set<String> existingLines = new HashSet<>(CFM.getLinesList());
-//            for (int i = 1; i < tableModel.getRowCount(); i++) {
-//                StringBuilder csvLine = new StringBuilder();
-//                for (int j = 0; j < tableModel.getColumnCount(); j++) {
-//                    csvLine.append(tableModel.getValueAt(i, j));
-//                    if (j < tableModel.getColumnCount() - 1) {
-//                        csvLine.append(",");
-//                    }
-//                }
-//                String lineToAdd = csvLine.toString();
-//                if (!existingLines.contains(lineToAdd)) {
-//                    CFM.create(lineToAdd);
-//                }
-//            }
+        deleteButton.addActionListener(e -> {
+            int selectedRow = dataTable.getSelectedRow();
+            if (selectedRow != -1) {
+                tableModel.removeRow(selectedRow);
+                CFM.delete(selectedRow + 1);
+            } else {
+                JOptionPane.showMessageDialog(null, "Please select a row to delete.");
+            }
+        });
 
-
+        switchButton.addActionListener(e -> {
             setFinishedGUI(lines);
             lines.clear();
             onWindowSwitched();
@@ -255,18 +243,6 @@ public class FileManagerGUI extends JFrame {
         });
 
         finishButton.addActionListener(e -> {
-            CFM.clearCsvFile();
-            for (int i = 1; i < tableModel.getRowCount(); i++) {
-                StringBuilder csvLine = new StringBuilder();
-                for (int j = 0; j < tableModel.getColumnCount(); j++) {
-                    csvLine.append(tableModel.getValueAt(i, j));
-                    if (j < tableModel.getColumnCount() - 1) {
-                        csvLine.append(",");
-                    }
-                }
-                CFM.create(csvLine.toString());
-            }
-
             System.out.println("\nFile has been updated and written...");
             setFinishedGUI(lines);
             setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -287,7 +263,7 @@ public class FileManagerGUI extends JFrame {
     private JButton createButton(String text, Color backgroundColor) {
         JButton button = new JButton(text);
         button.setBackground(backgroundColor);
-        button.setForeground(Color.WHITE);  // Assuming you want white text on colored buttons
+        button.setForeground(Color.WHITE);
         return button;
     }
     private void addTextField(int x, int y, int width, int height, JPanel panel, String label, JTextField textField) {
@@ -302,20 +278,52 @@ public class FileManagerGUI extends JFrame {
         panel.add(pack);
     }
 
+    // Method to create and display the edit dialog
+    private void showEditDialog(String name, String id, String yearLvl, String gender, String course, int selectedRow) {
+        JDialog editDialog = new JDialog(this, "Edit Item", true);
+        editDialog.setLayout(new BorderLayout());
+
+        JPanel editPanel = new JPanel(new GridLayout(6, 2));
+        JTextField editNameField = new JTextField(name);
+        JTextField editIdField = new JTextField(id);
+        JTextField editYearLvlField = new JTextField(yearLvl);
+        JTextField editGenderField = new JTextField(gender);
+        JTextField editCourseField = new JTextField(course);
+
+        editPanel.add(new JLabel("Name:"));
+        editPanel.add(editNameField);
+        editPanel.add(new JLabel("Id#:"));
+        editPanel.add(editIdField);
+        editPanel.add(new JLabel("Year Lvl:"));
+        editPanel.add(editYearLvlField);
+        editPanel.add(new JLabel("Gender:"));
+        editPanel.add(editGenderField);
+        editPanel.add(new JLabel("Course:"));
+        editPanel.add(editCourseField);
+
+        editPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
+        JButton updateButton = new JButton("Update");
+        updateButton.addActionListener(e -> {
+            if (editCourseField.getText().isEmpty()) {
+                editCourseField.setText("Not Enrolled");
+            }
+            String[] updateList = {editNameField.getText(), editIdField.getText(), editYearLvlField.getText(), editGenderField.getText(), editCourseField.getText()};
+            CFM.update(selectedRow + 1, updateList);
+            updateTableModel();
+            tableModel.fireTableDataChanged();
+            editDialog.dispose();
+        });
+
+        editDialog.add(editPanel, BorderLayout.CENTER);
+        editDialog.add(updateButton, BorderLayout.SOUTH);
+        editDialog.setSize(300, 200);
+        editDialog.setLocationRelativeTo(this);
+        editDialog.setVisible(true);
+    }
+
     private static boolean fileExists(String fileName) {
         File file = new File(fileName);
         return file.exists() && !file.isDirectory() && file.length() > 0;
-    }
-    private static void createNewFile(String fileName) {
-        // Create a new file and write the header
-        try (PrintWriter writer = new PrintWriter(new FileOutputStream(fileName))) {
-            String header = "Name, Id#, Year Lvl, Gender, Course";
-            writer.println(header);
-            writer.flush();
-        } catch (FileNotFoundException e) {
-            // Handle the exception based on your requirements
-            System.out.println("An error occurred:" + e);
-        }
     }
 
     private boolean isCourseAvailable(String courseId) {

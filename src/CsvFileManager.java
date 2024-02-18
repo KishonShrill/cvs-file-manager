@@ -42,11 +42,6 @@ public class CsvFileManager {
         csvFilePath.flush();
         lines.add(csvLine);
     }
-    public void create(String dataLine) {
-        csvFilePath.println(dataLine);
-        csvFilePath.flush();
-        lines.add(dataLine);
-    }
 
     /**
      * Reads the data from the specified line number in the CSV file and prints the information.
@@ -127,17 +122,14 @@ public class CsvFileManager {
         }
     }
     private void populateLinesList() {
-        // Read existing lines from the file and populate the lines list
         try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                // Skip empty lines or lines with only whitespace
                 if (!line.trim().isEmpty()) {
                     lines.add(line);
                 }
             }
         } catch (IOException e) {
-            // Handle the exception based on your requirements
             System.out.println("An error occurred:" + e);
         }
     }
@@ -151,22 +143,19 @@ public class CsvFileManager {
                 currentLineNumber++;
 
                 if (currentLineNumber == lineNumber + 1) {
-                    // Found the desired line
                     String[] columns = line.split(",");
                     for (String column : columns) {
                         result.add(column.trim());
                     }
-                    break; // No need to continue reading
+                    break;
                 }
             }
         } catch (IOException e) {
-            // Handle the exception based on your requirements
             System.out.println("An error occurred:" + e);
         }
         return result;
     }
     private void updateLine(int lineNumber, List<String> newData) {
-//        List<String> updatedLines = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
             int currentLineNumber = 0;
 
@@ -179,20 +168,17 @@ public class CsvFileManager {
                 }
             }
         } catch (IOException e) {
-            // Handle the exception based on your requirements
             System.out.println("An error occurred:" + e);
         }
     }
 
     public void updateFile() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(fileName))) {
-            // Write the lines to the file
             for (String line : lines) {
                 writer.println(line);
                 csvFilePath.flush();
             }
         } catch (IOException e) {
-            // Handle the exception based on your requirements
             System.out.println("An error occurred:" + e);
         }
     }

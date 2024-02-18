@@ -13,7 +13,7 @@ public class Main {
     public static PrintWriter students, courses;
     public static CsvFileManager student, course;
     public static Set<String> courseIds;
-    public static boolean activateGUI = false;
+    public static boolean activateGUI = true;
     public static boolean activateTerminal = true;
     public static boolean switchFile = false;
 
@@ -44,7 +44,6 @@ public class Main {
             fos2 = new FileOutputStream(fileName2, true);
             courses = new PrintWriter(fos2);
         }
-
 
         /* External Program */
         /* External Program */
@@ -330,6 +329,7 @@ public class Main {
             switchFile = !switchFile;
             System.out.println("FileManagerGUI is switched!");
             if (!switchFile) {
+                courseIds = readCourseIds(fileName2);
                 new FileManagerGUI(students, fileName1, studentArr, studentHeader, switchListener, courseIds);
             }
             if (switchFile) {
