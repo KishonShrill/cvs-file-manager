@@ -1,8 +1,7 @@
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintWriter;
+import java.io.*;
+import java.util.HashSet;
 import java.util.Scanner;
+import java.util.Set;
 
 public class Main {
     public static String fileName1 = "Student.csv", fileName2 = "Course.csv";
@@ -13,43 +12,51 @@ public class Main {
     public static FileOutputStream fos1, fos2;
     public static PrintWriter students, courses;
     public static CsvFileManager student, course;
-    public static boolean activateGUI = true;
+    public static Set<String> courseIds;
+    public static boolean activateGUI = false;
+    public static boolean activateTerminal = true;
     public static boolean switchFile = false;
 
     public static void main(String[] args) throws FileNotFoundException {
+        // Checker
+        courseIds = readCourseIds(fileName2);
+        System.out.println("Course #ID values:");
+        for (String courseId : courseIds) {System.out.println(courseId);}
+        // Checker
+
         if (!fileExists(fileName1)) {
             createNewFile(fileName1, studentHeader);
             fos1 = new FileOutputStream(fileName1);
             students = new PrintWriter(fos1);
-            if (!activateGUI) student = new CsvFileManager(students, fileName1, studentHeader);
+            if (!activateGUI) student = new CsvFileManager(students, fileName1, studentHeader, courseIds);
         } else {
             fos1 = new FileOutputStream(fileName1, true);
             students = new PrintWriter(fos1);
-            if (!activateGUI) student = new CsvFileManager(students, fileName1);
+            if (!activateGUI) student = new CsvFileManager(students, fileName1, courseIds);
         }
 
         if (!fileExists(fileName2)) {
             createNewFile(fileName2, courseHeader);
             fos2 = new FileOutputStream(fileName2);
             courses = new PrintWriter(fos2);
-            if (!activateGUI) course = new CsvFileManager(courses, fileName2, courseHeader);
+            if (!activateGUI) course = new CsvFileManager(courses, fileName2, courseHeader, courseIds);
         } else {
             fos2 = new FileOutputStream(fileName2, true);
             courses = new PrintWriter(fos2);
-            if (!activateGUI) course = new CsvFileManager(courses, fileName2);
         }
+
 
         /* External Program */
         /* External Program */
         if (activateGUI) {
-            new FileManagerGUI(students, fileName1, studentArr, studentHeader, switchListener);
+            new FileManagerGUI(students, fileName1, studentArr, studentHeader, switchListener, courseIds);
         }
         /* External Program */
         /* External Program */
 
         /* Internal Program */
         /* Internal Program */
-        if (!activateGUI) {
+        if (!activateGUI && activateTerminal) {
             boolean keepRunning = true;
             int choice = 0;
             Scanner scanner = new Scanner(System.in);
@@ -88,6 +95,11 @@ public class Main {
                             System.out.print("Course: ");
                             String newCourse = scanner.nextLine();
 
+                            // Check if newCourse is empty
+                            if (newCourse.isEmpty()) {
+                                newCourse = "Not Enrolled";
+                            }
+
                             student.create(newName, newId, newYearLevel, newGender, newCourse);
                             break;
                         case 2:
@@ -114,7 +126,8 @@ public class Main {
                         case 3:
                             // Delete logic
                             System.out.println("\n1. Regular Delete");
-                            System.out.println("2. Super Delete (clearCsvFile)");
+                            System.out.println("2. Delete from-to");
+                            System.out.println("3. Super Delete (clearCsvFile)");
                             System.out.print("Choose delete option: ");
 
                             int deleteOption = Integer.parseInt(scanner.nextLine());
@@ -126,6 +139,21 @@ public class Main {
                                     student.delete(indexToDelete);
                                     break;
                                 case 2:
+                                    // Delete from-to logic
+                                    System.out.println("\nEnter the range of records you want to delete (from-to): ");
+                                    System.out.print("From index: ");
+                                    int fromIndex = Integer.parseInt(scanner.nextLine());
+                                    System.out.print("To index: ");
+                                    int toIndex = Integer.parseInt(scanner.nextLine());
+
+                                    if (fromIndex < 1 || toIndex >= student.getLinesList().size()) {
+                                        System.out.println("Invalid range. Please enter a valid range.");
+                                    } else {
+                                        student.delete(fromIndex, toIndex);
+                                        System.out.println("Records from index " + fromIndex + " to " + toIndex + " deleted.");
+                                    }
+                                    break;
+                                case 3:
                                     System.out.print("\nSuper Delete initiated. Are you sure? (Y/N):");
                                     String confirmation = scanner.nextLine().trim().toLowerCase();
                                     if (confirmation.equals("y")) {
@@ -148,6 +176,12 @@ public class Main {
                             break;
                         case 5:
                             switchFile = true;
+                            courseIds = readCourseIds(fileName2);
+                            System.out.println("\nCourse #ID values:");
+                            for (String courseId : courseIds) {
+                                System.out.println(courseId);
+                            }
+                            course = new CsvFileManager(courses, fileName2, courseIds);
                             break;
                         case 6:
                             System.out.println("\n1. Cancel");
@@ -200,7 +234,8 @@ public class Main {
                         case 3:
                             // Delete logic
                             System.out.println("\n1. Regular Delete");
-                            System.out.println("2. Super Delete (clearCsvFile)");
+                            System.out.println("2. Delete from-to");
+                            System.out.println("3. Super Delete (clearCsvFile)");
                             System.out.print("Choose delete option: ");
 
                             int deleteOption = Integer.parseInt(scanner.nextLine());
@@ -212,6 +247,21 @@ public class Main {
                                     course.delete(indexToDelete);
                                     break;
                                 case 2:
+                                    // Delete from-to logic
+                                    System.out.println("\nEnter the range of records you want to delete (from-to): ");
+                                    System.out.print("From index: ");
+                                    int fromIndex = Integer.parseInt(scanner.nextLine());
+                                    System.out.print("To index: ");
+                                    int toIndex = Integer.parseInt(scanner.nextLine());
+
+                                    if (fromIndex < 1 || toIndex >= course.getLinesList().size()) {
+                                        System.out.println("Invalid range. Please enter a valid range.");
+                                    } else {
+                                        course.delete(fromIndex, toIndex);
+                                        System.out.println("Records from index " + fromIndex + " to " + toIndex + " deleted.");
+                                    }
+                                    break;
+                                case 3:
                                     System.out.print("\nSuper Delete initiated. Are you sure? (Y/N):");
                                     String confirmation = scanner.nextLine().trim().toLowerCase();
                                     if (confirmation.equals("y")) {
@@ -234,6 +284,12 @@ public class Main {
                             break;
                         case 5:
                             switchFile = false;
+                            courseIds = readCourseIds(fileName2);
+                            System.out.println("\nCourse #ID values:");
+                            for (String courseId : courseIds) {
+                                System.out.println(courseId);
+                            }
+                            student = new CsvFileManager(students, fileName1, courseIds);
                             break;
                         case 6:
                             System.out.println("\n1. Cancel");
@@ -261,8 +317,8 @@ public class Main {
             }
             students.close();
             courses.close();
-            System.out.println("\nFile /Student.csv/ has been written...");
-            System.out.println("File /Course.csv/ has been written...");
+            System.out.println("\nFile /Course.csv/ has been written...");
+            System.out.println("File /Student.csv/ has been written...");
         }
         /* Internal Program */
         /* Internal Program */
@@ -274,10 +330,10 @@ public class Main {
             switchFile = !switchFile;
             System.out.println("FileManagerGUI is switched!");
             if (!switchFile) {
-                new FileManagerGUI(students, fileName1, studentArr, studentHeader, switchListener);
+                new FileManagerGUI(students, fileName1, studentArr, studentHeader, switchListener, courseIds);
             }
             if (switchFile) {
-                new FileManagerGUI(courses, fileName2, courseArr, courseHeader, switchListener);
+                new FileManagerGUI(courses, fileName2, courseArr, courseHeader, switchListener, courseIds);
             }
         }
     };
@@ -295,5 +351,27 @@ public class Main {
             // Handle the exception based on your requirements
             System.out.println("An error occurred:" + e);
         }
+    }
+
+    // Step 2: Read Course #ID values from Student.csv
+    private static Set<String> readCourseIds(String fileName) {
+        Set<String> courseIds = new HashSet<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            // Skip the header
+            reader.readLine();
+
+            while ((line = reader.readLine()) != null) {
+                String[] columns = line.split(",");
+                if (columns.length >= 2) {
+                    courseIds.add(columns[1].trim());  // Assuming Course #ID is in the second column
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("An error occurred while reading Student.csv:" + e);
+        }
+
+        return courseIds;
     }
 }

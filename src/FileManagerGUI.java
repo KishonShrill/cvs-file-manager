@@ -2,6 +2,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -12,22 +13,20 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class FileManagerGUI extends JFrame {
     public static List<String> lines = new ArrayList<>();
+    Set<String> courseIds;
     public static CsvFileManager CFM;
     final FileManagerSwitchedListener switchListener;
     final JLabel fileManager__title = new JLabel();
-    private JPanel panelMain;
-    private JPanel panelFooter;
-    private JPanel panelSideLeft;
     private JPanel panelSideRight;
     final JButton addItemButton = createButton("Add Item", Color.BLUE);
     final JButton editButton = createButton("Edit", Color.LIGHT_GRAY);
     final JButton finishButton = createButton("Finish", Color.GREEN);
     final JButton deleteButton = createButton("Delete", Color.RED);
     final JButton switchButton = createButton("Switch", Color.BLACK);
-    private JTable dataTable;
     final JTextField textName = new JTextField();
     final JTextField textId = new JTextField();
     final JTextField textYearLvl = new JTextField();
@@ -40,13 +39,15 @@ public class FileManagerGUI extends JFrame {
             String fileName,
             String[] header,
             String initialHead,
-            FileManagerSwitchedListener switchListener
+            FileManagerSwitchedListener switchListener,
+            Set<String> courseIds
     ) {
         this.switchListener = switchListener;
+        this.courseIds = courseIds;
         if (!fileExists(fileName)) {
-            CFM = new CsvFileManager(fileObject, fileName, initialHead);
+            CFM = new CsvFileManager(fileObject, fileName, initialHead, courseIds);
         } else {
-            CFM = new CsvFileManager(fileObject, fileName);
+            CFM = new CsvFileManager(fileObject, fileName, courseIds);
         }
 
         initializeUI(fileName);
@@ -64,14 +65,14 @@ public class FileManagerGUI extends JFrame {
     }
 
     private void initializeUI(String fileName) {
-        panelMain = new JPanel(new BorderLayout());
+        JPanel panelMain = new JPanel(new BorderLayout());
         int margin = 20; // Set the margin size
         panelMain.setBorder(BorderFactory.createEmptyBorder(margin, margin-10, margin, margin-10));
         panelMain.setMinimumSize(new Dimension(840, 500));
         setContentPane(panelMain);
 
         /* Editor Pane */
-        panelSideLeft = new JPanel(null);
+        JPanel panelSideLeft = new JPanel(null);
         TitledBorder titledBorder = BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "File Editor");
         titledBorder.setTitleFont(new Font("Arial", Font.BOLD, 14));
         titledBorder.setTitleJustification(TitledBorder.CENTER);
@@ -102,7 +103,7 @@ public class FileManagerGUI extends JFrame {
         panelMain.add(panelSideRight, BorderLayout.CENTER);
 
         panelSideRight.setBorder(new EmptyBorder(0, 10, 0, 0));
-        panelFooter = new JPanel(new BorderLayout());
+        JPanel panelFooter = new JPanel(new BorderLayout());
             JPanel panelFooterLeft = new JPanel();
                 panelFooterLeft.add(editButton);
                 panelFooterLeft.add(deleteButton);
@@ -115,23 +116,89 @@ public class FileManagerGUI extends JFrame {
     }
     private void initializeTableModel(String[] header) {
         // Initialize the table model with column names
-        tableModel = new DefaultTableModel(null, header);
-        dataTable = new JTable(tableModel);
+        tableModel = new DefaultTableModel(null, header) {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                return String.class; // Set column class to String for all columns
+            }
+        };
+        JTable dataTable = new JTable(tableModel);
+
+        // Custom cell renderer for the Course column
+        DefaultTableCellRenderer courseRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+
+                // Call the superclass method for default rendering behavior
+                Component cellComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                // Check if the cell is empty
+                if (value == null || value.toString().isEmpty()) {
+                    cellComponent.setBackground(Color.RED);
+                } else {
+                    String courseId = value.toString().trim();
+
+                    // Check if the column is the course column
+                    if (column == 4) {
+                        System.out.println("Row: " + row + ", Course ID: " + courseId); // Debug print statement
+
+                        // Check if the course exists
+                        if (courseIds.contains(courseId) && (courseId != "Course Id#")) {
+                            // Check if the course is available
+                            if (isCourseAvailable(courseId)) {
+                                cellComponent.setBackground(Color.GREEN);
+                            } else {
+                                cellComponent.setBackground(Color.YELLOW);
+                            }
+                        } else {
+                            // Course doesn't exist
+                            System.out.println("Row: " + row + ", Course doesn't exist"); // Debug print statement
+                            cellComponent.setBackground(Color.YELLOW);
+                        }
+                    }
+                }
+
+                return cellComponent;
+            }
+        };
+        dataTable.getColumnModel().getColumn(4).setCellRenderer(courseRenderer);
 
         JScrollPane scrollPane = new JScrollPane(dataTable);
         panelSideRight.add(scrollPane, BorderLayout.CENTER);
         setLinesListGUI(CFM.getLinesList());
     }
+
     private void updateTableModel() {
         // Clear the existing rows
         tableModel.setRowCount(0);
-        // Populate the model with data from the updated lines list
-        for (String line : lines) {
+
+        // Start the loop from index 1 to exclude the header row
+        for (int i = 1; i < lines.size(); i++) {
+            String line = lines.get(i);
             String[] rowData = line.split(",");
-            tableModel.addRow(rowData);
+            Object[] updatedRowData = new Object[rowData.length];
+
+            for (int j = 0; j < rowData.length; j++) {
+                if (j == 4) {
+                    String courseId = rowData[j].trim();
+                    if (("Not Enrolled".equals(courseId))) {
+                        updatedRowData[j] = "Not Enrolled";
+                    } else if (courseIds.contains(courseId)) {
+                        updatedRowData[j] = courseId;
+                    } else {
+                        updatedRowData[j] = "N/A";
+                    }
+                } else {
+                    updatedRowData[j] = rowData[j];
+                }
+            }
+
+            tableModel.addRow(updatedRowData);
         }
         tableModel.fireTableDataChanged();
     }
+
     private void initializeListeners(PrintWriter fileObject) {
         addItemButton.addActionListener(e -> {
             // Use the existing tableModel instead of creating a new one
@@ -162,6 +229,23 @@ public class FileManagerGUI extends JFrame {
                 }
                 CFM.create(csvLine.toString());
             }
+
+//            Set<String> existingLines = new HashSet<>(CFM.getLinesList());
+//            for (int i = 1; i < tableModel.getRowCount(); i++) {
+//                StringBuilder csvLine = new StringBuilder();
+//                for (int j = 0; j < tableModel.getColumnCount(); j++) {
+//                    csvLine.append(tableModel.getValueAt(i, j));
+//                    if (j < tableModel.getColumnCount() - 1) {
+//                        csvLine.append(",");
+//                    }
+//                }
+//                String lineToAdd = csvLine.toString();
+//                if (!existingLines.contains(lineToAdd)) {
+//                    CFM.create(lineToAdd);
+//                }
+//            }
+
+
             setFinishedGUI(lines);
             lines.clear();
             onWindowSwitched();
@@ -182,6 +266,7 @@ public class FileManagerGUI extends JFrame {
                 }
                 CFM.create(csvLine.toString());
             }
+
             System.out.println("\nFile has been updated and written...");
             setFinishedGUI(lines);
             setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -231,6 +316,10 @@ public class FileManagerGUI extends JFrame {
             // Handle the exception based on your requirements
             System.out.println("An error occurred:" + e);
         }
+    }
+
+    private boolean isCourseAvailable(String courseId) {
+        return !"N/A".equals(courseId);
     }
 
     public void setLinesListGUI(List<String> lines) {
