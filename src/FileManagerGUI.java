@@ -31,7 +31,31 @@ public class FileManagerGUI extends JFrame {
     final JTextField textYearLvl = new JTextField();
     final JTextField textGender = new JTextField();
     final JTextField textCourse = new JTextField();
+    private static final int MIN_PANEL_WIDTH = 400;
+    private static final int MIN_PANEL_HEIGHT = 50;
     private DefaultTableModel tableModel;
+    private static final String[] TUTORIAL_IMAGE_PATH = {
+            "./components/application.png",
+            "./components/editorPane.png",
+            "./components/tablePane.png",
+            "./components/editBtn.png",
+            "./components/deleteBtn.png",
+            "./components/switchBtn.png",
+            "./components/finishBtn.png",
+            "./components/closeBtn.png",
+            "./components/github.png"
+    };
+    private static final String[] TUTORIAL_MESSAGES = {
+            "Hello! Is this your first time using the program? Let me show you around.",
+            "Here is where you input the necessary information to add data to the CSV",
+            "Here is where the added data is displayed for easy management",
+            "Click any row of the Display Table and click Edit to update mistakes and necessary information about the data",
+            "Click any row of the Display Table and click Delete to remove data from the Table",
+            "Click the switch button to change from Course.csv and Student.csv respectively",
+            "Click the Finish button to save and exit. The program will save your data automatically and save when you are done.",
+            "Warning!!! Exiting using the Close button on the upper right will NOT save your file.",
+            "If you have any questions and feedback, chat us in the discussion board on Github.",
+    };
 
     public FileManagerGUI(
             PrintWriter fileObject,
@@ -52,6 +76,7 @@ public class FileManagerGUI extends JFrame {
         initializeUI(fileName);
         initializeTableModel(header, fileName);
         initializeListeners(fileObject);
+        displayTutorial();
 
         // Set up JFrame properties
         setTitle("CSV File Manager");
@@ -155,7 +180,6 @@ public class FileManagerGUI extends JFrame {
         panelSideRight.add(scrollPane, BorderLayout.CENTER);
         setLinesListGUI(CFM.getLinesList());
     }
-
     private void updateTableModel() {
         // Clear the existing rows
         tableModel.setRowCount(0);
@@ -184,7 +208,6 @@ public class FileManagerGUI extends JFrame {
         }
         tableModel.fireTableDataChanged();
     }
-
     private void initializeListeners(PrintWriter fileObject) {
         addItemButton.addActionListener(e -> {
             if (textCourse.getText().isEmpty()) {
@@ -260,6 +283,50 @@ public class FileManagerGUI extends JFrame {
         updateTableModel();
         CFM.updateFile();
     }
+    private void displayTutorial() {
+        int picture = 0;
+        for (String message : TUTORIAL_MESSAGES) {
+            showMessageDialog(message, picture);
+            picture++;
+        }
+    }
+    private void showMessageDialog(String message, int picture) {
+        // Create a tutorial pane with images and messages
+        JOptionPane.showMessageDialog(this,
+                createTutorialPanel(message, picture),
+                "Welcome to the FileManager!",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private JPanel createTutorialPanel(String message, int picture) {
+        JPanel tutorialPanel = new JPanel(new BorderLayout());
+
+        // Add a JLabel with an image
+        ImageIcon tutorialImage = new ImageIcon(TUTORIAL_IMAGE_PATH[picture]);
+        JLabel imageLabel = new JLabel(tutorialImage);
+        tutorialPanel.add(imageLabel, BorderLayout.NORTH);
+
+        // Add JTextArea with tutorial messages
+        JTextArea messageArea = new JTextArea(message);
+        messageArea.setEditable(false);
+        messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
+        messageArea.setAlignmentX(messageArea.CENTER_ALIGNMENT);
+        messageArea.setAlignmentY(messageArea.CENTER_ALIGNMENT);
+
+        JScrollPane scrollPane = new JScrollPane(messageArea);
+        tutorialPanel.add(scrollPane, BorderLayout.CENTER);
+
+        int imageWidth = tutorialImage.getIconWidth();
+        int imageHeight = tutorialImage.getIconHeight();
+        int panelWidth = Math.max(imageWidth, MIN_PANEL_WIDTH);  // MIN_PANEL_WIDTH is a constant for minimum width
+        int panelHeight = Math.addExact(imageHeight, MIN_PANEL_HEIGHT);  // MIN_PANEL_HEIGHT is a constant for minimum height
+
+        tutorialPanel.setPreferredSize(new Dimension(panelWidth, panelHeight));
+        tutorialPanel.revalidate();
+
+        return tutorialPanel;
+    }
     private JButton createButton(String text, Color backgroundColor) {
         JButton button = new JButton(text);
         button.setBackground(backgroundColor);
@@ -320,16 +387,13 @@ public class FileManagerGUI extends JFrame {
         editDialog.setLocationRelativeTo(this);
         editDialog.setVisible(true);
     }
-
     private static boolean fileExists(String fileName) {
         File file = new File(fileName);
         return file.exists() && !file.isDirectory() && file.length() > 0;
     }
-
     private boolean isCourseAvailable(String courseId) {
         return !"N/A".equals(courseId);
     }
-
     public void setLinesListGUI(List<String> lines) {
         FileManagerGUI.lines = lines;
         updateTableModel();
