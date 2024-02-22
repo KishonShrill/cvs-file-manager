@@ -58,11 +58,32 @@ public class CsvFileManager {
                 for (int i = 0; i < result.size(); i++) {
                     if (i == 4) {
                         String courseId = result.get(i).trim();
-                        if ("Not Enrolled".equals(courseId)) {System.out.print("Not Enrolled");}
-                        else if (courseIds.contains(courseId)) {System.out.print(courseId);}
-                        else {System.out.print("N/A");}
-
-                    } else {System.out.print(result.get(i) + ", ");}
+                        if ("Not Enrolled".equals(courseId)) {
+                            System.out.print("\033[34mNot Enrolled\033[0m "); // Blue
+                        } else if (courseIds.contains(courseId)) {
+                            System.out.print("\033[33m" + courseId + "\033[0m "); // Yellow/Orange
+                        } else {
+                            System.out.print("\033[31mN/A\033[0m "); // Red
+                        }
+                    } else {
+                        switch (i) {
+                            case 0:
+                                System.out.print("\033[34m" + result.get(i) + "\033[0m, "); // Blue
+                                break;
+                            case 1:
+                                System.out.print("\033[96m" + result.get(i) + "\033[0m, "); // Yellow/Orange
+                                break;
+                            case 2:
+                                System.out.print("\033[32m" + result.get(i) + "\033[0m, "); // Light Green
+                                break;
+                            case 3:
+                                System.out.print("\033[35m" + result.get(i) + "\033[0m, "); // Purple
+                                break;
+                            default:
+                                System.out.print("\033[33m" + result.get(i) + "\033[0m, "); // Yellow/Orange
+                                break;
+                        }
+                    }
                 }
             } else {
                 System.out.println("Line not found or empty.");
@@ -71,6 +92,7 @@ public class CsvFileManager {
             System.out.println("Invalid line number. No record to read.");
         }
     }
+
 
     public void update(int lineNumber, String[] newData) {
         List<String> currentData = readLine(lineNumber);
@@ -156,7 +178,7 @@ public class CsvFileManager {
         return result;
     }
     private void updateLine(int lineNumber, List<String> newData) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+        try (BufferedReader ignored = new BufferedReader(new FileReader(fileName))) {
             int currentLineNumber = 0;
 
             for (int i = 0; i < lines.size(); i++) {

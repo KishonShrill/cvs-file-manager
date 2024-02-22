@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class FileManagerGUI extends JFrame {
@@ -35,15 +36,15 @@ public class FileManagerGUI extends JFrame {
     private static final int MIN_PANEL_HEIGHT = 50;
     private DefaultTableModel tableModel;
     private static final String[] TUTORIAL_IMAGE_PATH = {
-            "./components/application.png",
-            "./components/editorPane.png",
-            "./components/tablePane.png",
-            "./components/editBtn.png",
-            "./components/deleteBtn.png",
-            "./components/switchBtn.png",
-            "./components/finishBtn.png",
-            "./components/closeBtn.png",
-            "./components/github.png"
+            "./src/components/application.png",
+            "./src/components/editorPane.png",
+            "./src/components/tablePane.png",
+            "./src/components/editBtn.png",
+            "./src/components/deleteBtn.png",
+            "./src/components/switchBtn.png",
+            "./src/components/finishBtn.png",
+            "./src/components/closeBtn.png",
+            "./src/components/github.png"
     };
     private static final String[] TUTORIAL_MESSAGES = {
             "Hello! Is this your first time using the program? Let me show you around.",
@@ -63,7 +64,8 @@ public class FileManagerGUI extends JFrame {
             String[] header,
             String initialHead,
             FileManagerSwitchedListener switchListener,
-            Set<String> courseIds
+            Set<String> courseIds,
+            boolean firstTime
     ) {
         this.switchListener = switchListener;
         this.courseIds = courseIds;
@@ -76,7 +78,7 @@ public class FileManagerGUI extends JFrame {
         initializeUI(fileName);
         initializeTableModel(header, fileName);
         initializeListeners(fileObject);
-        displayTutorial();
+        if (firstTime) displayTutorial();
 
         // Set up JFrame properties
         setTitle("CSV File Manager");
@@ -110,7 +112,7 @@ public class FileManagerGUI extends JFrame {
         int X_AXIS = 15, TEXT_HEIGHT = 20, TEXT_WIDTH = 190;
         addTextField(X_AXIS,  30,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Name", textName);
         addTextField(X_AXIS,  60,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Id#", textId);
-        if (fileName == "Student.csv") {
+        if (Objects.equals(fileName, "Student.csv")) {
             addTextField(X_AXIS,  90,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Year Lvl", textYearLvl);
             addTextField(X_AXIS, 120,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Gender", textGender);
             addTextField(X_AXIS, 150,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Course", textCourse);
@@ -139,7 +141,7 @@ public class FileManagerGUI extends JFrame {
         panelSideRight.add(panelFooter, BorderLayout.SOUTH);
     }
     private void initializeTableModel(String[] header, String fileName) {
-        if (fileName == "Course.csv") {
+        if (Objects.equals(fileName, "Course.csv")) {
             tableModel = new DefaultTableModel(null, header);
             dataTable = new JTable(tableModel);
         }
@@ -311,8 +313,6 @@ public class FileManagerGUI extends JFrame {
         messageArea.setEditable(false);
         messageArea.setLineWrap(true);
         messageArea.setWrapStyleWord(true);
-        messageArea.setAlignmentX(messageArea.CENTER_ALIGNMENT);
-        messageArea.setAlignmentY(messageArea.CENTER_ALIGNMENT);
 
         JScrollPane scrollPane = new JScrollPane(messageArea);
         tutorialPanel.add(scrollPane, BorderLayout.CENTER);
