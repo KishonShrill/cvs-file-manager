@@ -105,17 +105,31 @@ public class CsvFileManager {
             updateFile();
         }
     }
+    public void updateDataByName(String nameToEdit, String[] newData) {
+        // For GUI use case
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (line.contains(nameToEdit)) {
+                lines.set(i, String.join(",", newData));
+            }
+        }
+        updateFile();
+    }
+
 
     public void delete(int lineNumber) {
         lines.remove(lineNumber);
         updateFile();
     }
-
     public void delete(int fromIndex, int toIndex) {
         if (toIndex >= fromIndex) {
             lines.subList(fromIndex, toIndex + 1).clear();
         }
         updateFile();
+    }
+    public void deleteDataByName(String nameToDelete) {
+        // For GUI use case
+        lines.removeIf(line -> line.contains(nameToDelete));
     }
 
 
@@ -176,6 +190,15 @@ public class CsvFileManager {
             System.out.println("An error occurred:" + e);
         }
         return result;
+    }
+    public String[] getLine(int index) {
+        if (index < 0 || index >= lines.size()) {
+            // Index out of bounds, return null or throw an exception
+            return null;
+        }
+        String line = lines.get(index);
+
+        return line.split(",");
     }
     private void updateLine(int lineNumber, List<String> newData) {
         try (BufferedReader ignored = new BufferedReader(new FileReader(fileName))) {

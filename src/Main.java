@@ -12,18 +12,18 @@ public class Main {
     private static PrintWriter students, courses;
     private static CsvFileManager student, course;
     private static Set<String> courseIds;
-    private static boolean activateGUI = false;
+    private static final boolean activateGUI = false;
     private static boolean switchFile = false;
     private static final Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) throws FileNotFoundException {
         courseIds = readCourseIds(fileName2);
 
-        /**
-         * Checks if the specified file exists. If it does not exist, creates a new file with the specified header.
-         * Initializes file output streams and print writers for the file. If the file exists, appends to the existing file.
-         *
-         * @param fileName1     The name of the first file to check/create.
+        /*
+          Checks if the specified file exists. If it does not exist, creates a new file with the specified header.
+          Initializes file output streams and print writers for the file. If the file exists, appends to the existing file.
+
+          @param fileName1     The name of the first file to check/create.
          * @param fileName2     The name of the second file to check/create.
          * @param studentHeader The header string for the student file.
          * @param courseHeader  The header string for the course file.
@@ -53,31 +53,19 @@ public class Main {
             courses = new PrintWriter(fos2);
         }
 
-//        student.create("John Doe", "JD123", "Sophomore", "Male", "BSCS");
-//        student.create("Jane Smith", "JS456", "Freshman", "Female", "BSEE");
-//        student.create("Alex Johnson", "AJ789", "Junior", "Non-Binary", "PHYS");
-//        student.create("Emily Davis", "ED234", "Senior", "Female", "PSY");
-//        student.create("Michael Brown", "MB567", "Sophomore", "Male", "BME");
-//        student.create("Sophie Miller", "SM890", "Freshman", "Female", "MATH");
-//        student.create("Ryan Taylor", "RT123", "Junior", "Male", "CHEM");
-//        student.create("Olivia White", "OW456", "Senior", "Female", "ENVS");
-//        student.create("Daniel Adams", "DA789", "Sophomore", "Male", "POLSCI");
-//        student.create("Mia Wilson", "MW234", "Junior", "Female", "BUSAD");
-
-
-        /**
-         * Handles the program's logic for both GUI and terminal modes.
-         * If GUI mode is activated, initializes a new FileManagerGUI instance.
-         * If terminal mode is activated, provides a text-based menu for user interaction.
-         * <p>
-         * case 1: create
-         * case 2: update
-         * case 3: delete
-         * case 4: read
-         * case 5: switchFile
-         * case 6: exit application
-         * <p>
-         * @param activateGUI     A flag indicating whether the GUI mode is activated.
+        /*
+          Handles the program's logic for both GUI and terminal modes.
+          If GUI mode is activated, initializes a new FileManagerGUI instance.
+          If terminal mode is activated, provides a text-based menu for user interaction.
+          <p>
+          case 1: create
+          case 2: update
+          case 3: delete
+          case 4: read
+          case 5: switchFile
+          case 6: exit application
+          <p>
+          @param activateGUI     A flag indicating whether the GUI mode is activated.
          * @param scanner          A Scanner object for user input in terminal mode.
          * @param fileName1        The name of the first CSV file.
          * @param fileName2        The name of the second CSV file.
@@ -88,10 +76,10 @@ public class Main {
          * @throws FileNotFoundException If an error occurs while creating file output streams.
          */
         if (activateGUI) {
-            boolean firstTime = true;
-//            System.out.println("Is this your first time? (y/n)");
-//            String response = scanner.nextLine().toLowerCase();
-//            if  (response == "n")  firstTime = false; else firstTime = true;
+            boolean firstTime;
+            System.out.println("Is this your first time? (y/n)");
+            String response = scanner.nextLine().toLowerCase();
+            if  (response.equals("n"))  firstTime = false; else firstTime = true;
             new FileManagerGUI(students, fileName1, studentArr, studentHeader, switchListener, courseIds, firstTime);
         }
         if (!activateGUI) {
@@ -160,6 +148,9 @@ public class Main {
                             System.out.print("\nEnter the index of the record you want to update: ");
                             int indexToUpdate = Integer.parseInt(scanner.nextLine());
 
+                            // Retrieve the existing data for the specified index
+                            String[] existingData = student.getLine(indexToUpdate);
+
                             System.out.println("Enter updated student details:");
                             System.out.print("Name: ");
                             String updatedName = scanner.nextLine();
@@ -171,6 +162,12 @@ public class Main {
                             String updatedGender = scanner.nextLine();
                             System.out.print("Course: ");
                             String updatedCourse = scanner.nextLine();
+
+                            if (updatedName.isEmpty()) updatedName = existingData[0];
+                            if (updatedId.isEmpty()) updatedId = existingData[1];
+                            if (updatedYearLevel.isEmpty()) updatedYearLevel = existingData[2];
+                            if (updatedGender.isEmpty()) updatedGender = existingData[3];
+                            if (updatedCourse.isEmpty()) updatedCourse = existingData[4];
 
                             // Store the updated data in an array
                             String[] updatedLine = {updatedName, updatedId, updatedYearLevel, updatedGender, updatedCourse};
