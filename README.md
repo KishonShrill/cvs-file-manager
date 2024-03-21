@@ -1,6 +1,11 @@
 # CSV File Manager
 This Java program provides a flexible and user-friendly way to manage CSV files, allowing users to interact with the data through both a terminal-based interface and a graphical user interface (GUI). The program supports two types of CSV files: "Student.csv" and "Course.csv."
 
+## ✨ Updated Features - v.2.09  ✨
+- **Sort Functionality**: Now you can easily arrange your data using the new sorting feature. Whether you want to organize by name, ID#, year level, gender, or course, it's just a click away!
+- **Smart Data Overwrite**: Worried about accidentally duplicating data? Our CSV Editor now prompts you if the ID# you're trying to add already exists. You'll have the option to overwrite the existing data or cancel the operation.
+- **Course Filtering**: Say goodbye to clutter! The course dropdown menu now displays only the available courses from the Course.csv file. No more guessing or manual entries - it's streamlined and hassle-free.
+
 ## Table of contents
 
 - [Features](#features)

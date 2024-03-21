@@ -12,13 +12,12 @@ public class Main {
     private static PrintWriter students, courses;
     private static CsvFileManager student, course;
     private static Set<String> courseIds;
-    private static final boolean activateGUI = false;
+    private static final boolean activateGUI = true;
     private static boolean switchFile = false;
     private static final Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) throws FileNotFoundException {
         courseIds = readCourseIds(fileName2);
-
         /*
           Checks if the specified file exists. If it does not exist, creates a new file with the specified header.
           Initializes file output streams and print writers for the file. If the file exists, appends to the existing file.
@@ -79,7 +78,7 @@ public class Main {
             boolean firstTime;
             System.out.println("Is this your first time? (y/n)");
             String response = scanner.nextLine().toLowerCase();
-            if  (response.equals("n"))  firstTime = false; else firstTime = true;
+            firstTime = !response.equals("n");
             new FileManagerGUI(students, fileName1, studentArr, studentHeader, switchListener, courseIds, firstTime);
         }
         if (!activateGUI) {

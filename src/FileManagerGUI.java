@@ -10,10 +10,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 
 public class FileManagerGUI extends JFrame {
     public static List<String> lines = new ArrayList<>();
@@ -32,11 +30,13 @@ public class FileManagerGUI extends JFrame {
     final JTextField textId = new JTextField();
     final JTextField textYearLvl = new JTextField();
     final JTextField textGender = new JTextField();
-    final JTextField textCourse = new JTextField();
+//    final JTextField textCourse = new JTextField();
+    private JComboBox<String> comboBox;
     private static final int MIN_PANEL_WIDTH = 400;
     private static final int MIN_PANEL_HEIGHT = 50;
     private DefaultTableModel tableModel;
     private JComboBox<String> searchColumnComboBox;
+    private JComboBox<String> sortColumnComboBox;
     private JTextField searchField;
     private static final String[] TUTORIAL_IMAGE_PATH = {
             "./src/components/application.png",
@@ -80,7 +80,7 @@ public class FileManagerGUI extends JFrame {
 
         initializeUI(fileName, header);
         initializeTableModel(header, fileName);
-        initializeListeners(fileName, fileObject);
+        initializeListeners(header, fileName, fileObject);
 
         // Set up JFrame properties
         setTitle("CSV File Manager");
@@ -118,9 +118,10 @@ public class FileManagerGUI extends JFrame {
         if (Objects.equals(fileName, "Student.csv")) {
             addTextField(X_AXIS,  90,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Year Lvl", textYearLvl);
             addTextField(X_AXIS, 120,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Gender", textGender);
-            addTextField(X_AXIS, 150,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Course", textCourse);
+            comboBox = new JComboBox<>(setToArray(courseIds));
+            addComboBox(X_AXIS, TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, comboBox);
         }
-        addItemButton.setBounds(100, 180, 105, 20);
+        addItemButton.setBounds(85, 180, 120, 70);
 
         panelSideLeft.add(addItemButton);
         panelMain.add(panelSideLeft, BorderLayout.WEST);
@@ -147,18 +148,25 @@ public class FileManagerGUI extends JFrame {
         // Create search components
         JPanel searchPanel = new JPanel(new BorderLayout());
         JPanel searchInputPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT)); // Panel for combo and text field
+        JPanel sortPanel = new JPanel(new FlowLayout(FlowLayout.LEFT)); // Panel for combo and text field
+
+        JLabel sortLabel = new JLabel("Sort By:");
+        sortColumnComboBox = new JComboBox<>(header);
 
         JLabel searchLabel = new JLabel("Search By:");
         searchColumnComboBox = new JComboBox<>(header);
-        searchField = new JTextField(20);
+        searchField = new JTextField(15);
 
         // Add components to the respective panels
+        sortPanel.add(sortLabel);
+        sortPanel.add(sortColumnComboBox);
         searchInputPanel.add(searchLabel);
         searchInputPanel.add(searchColumnComboBox);
         searchInputPanel.add(searchField);
 
         // Add panels to the search panel
-        searchPanel.add(searchInputPanel, BorderLayout.CENTER);
+        searchPanel.add(sortPanel, BorderLayout.WEST);
+        searchPanel.add(searchInputPanel, BorderLayout.EAST);
 
         // Add search panel to the main panel
         panelSideRight.add(searchPanel, BorderLayout.NORTH);
@@ -284,21 +292,84 @@ public class FileManagerGUI extends JFrame {
         }
         tableModel.fireTableDataChanged();
     }
+    private void sortTableBySelectedColumn(String[] header) {
+        String selectedColumn = (String) sortColumnComboBox.getSelectedItem();
+        int columnIndex = -1;
 
-    private void initializeListeners(String fileName, PrintWriter fileObject) {
+        // Determine the index of the selected column
+        for (int i = 0; i < header.length; i++) {
+            if (header[i].equalsIgnoreCase(selectedColumn)) {
+                columnIndex = i;
+                break;
+            }
+        }
+
+        if (columnIndex != -1) {
+            // Sort the table based on the selected column
+            switch (selectedColumn) {
+                case "Name" -> sortTableByName();
+                case "Id#" -> sortTableById();
+                case "Year Lvl" -> sortTableByYearLevel();
+                case "Gender" -> sortTableByGender();
+                case "Course" -> sortTableByCourse();
+            }
+        }
+    }
+    private void initializeListeners(String[] header, String fileName, PrintWriter fileObject) {
         addItemButton.addActionListener(e -> {
-            if (textCourse.getText().isEmpty()) {
-                textCourse.setText("Not Enrolled");
-            }
+            String yearLvlInput, genderInput;
+            String nameInput = textName.getText().trim();
+            String idInput = textId.getText().trim();
             if (Objects.equals(fileName, "Student.csv")) {
-                CFM.create(textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), textCourse.getText());
-                textName.setText(""); textId.setText(""); textYearLvl.setText(""); textGender.setText(""); textCourse.setText("");
-            } else {
-                CFM.create(textName.getText(), textId.getText());
-                textName.setText(""); textId.setText("");
+                yearLvlInput = textYearLvl.getText().trim();
+                genderInput = textGender.getText().trim();
+                if (yearLvlInput.isEmpty() || genderInput.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "Please input all required data!");
+                    return;
+                }
             }
-            updateTableModel();
-            tableModel.fireTableDataChanged();
+            if (nameInput.isEmpty() || idInput.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Please input all required data!");
+                return;
+            }
+
+            // Gather all the ID data from column
+            List<String> idColumnData = new ArrayList<>();
+            for (String line : lines) {
+                String[] parts = line.split(",");
+                if (parts.length > 1) {
+                    String id = parts[1].trim();
+                    idColumnData.add(id);
+                }
+            }
+
+            String idToAdd = textId.getText().trim();
+            boolean idExists = idColumnData.contains(idToAdd);
+
+            if (idExists) {
+                int option = JOptionPane.showConfirmDialog(null,
+                        "This ID already exists in the system. Would you like to overwrite this ID instead?",
+                        "ID Exists",
+                        JOptionPane.YES_NO_OPTION);
+                if (option == JOptionPane.YES_OPTION) {
+                    for (int i = 0; i < dataTable.getRowCount(); i++) {
+                        String yearLvl = "", gender = "";
+                        String idInTable = (String) dataTable.getValueAt(i, 1); // Assuming ID is in the second column, adjust index accordingly
+                        if (idInTable.equals(idToAdd)) {
+                            String nameToUpdate = (String) dataTable.getValueAt(i, 0);
+                            String name = (String) dataTable.getValueAt(i, 0);
+                            String id = (String) dataTable.getValueAt(i, 1);
+                            if (Objects.equals(fileName, "Student.csv")) {
+                                yearLvl = (String) dataTable.getValueAt(i, 2);
+                                gender = (String) dataTable.getValueAt(i, 3);
+                            }
+                            showEditDialog(nameToUpdate, name, id, yearLvl, gender, fileName);
+                            clearTextFields(fileName);
+                            return;
+                        }
+                    }
+                } else {clearTextFields(fileName);}
+            } else {addData(fileName);}
         });
         addItemButton.addKeyListener(new KeyListener() {
             @Override
@@ -313,24 +384,7 @@ public class FileManagerGUI extends JFrame {
             public void keyReleased(KeyEvent e) {}
         });
 
-        editButton.addActionListener(e -> {
-            String yearLvl = "", gender = "", course = "";
-            int selectedRow = dataTable.getSelectedRow();
-            if (selectedRow != -1) {
-                String nameToUpdate = (String) tableModel.getValueAt(selectedRow, 0);
-                String name = (String) tableModel.getValueAt(selectedRow, 0);
-                String id = (String) tableModel.getValueAt(selectedRow, 1);
-                if (Objects.equals(fileName, "Student.csv")) {
-                    yearLvl = (String) tableModel.getValueAt(selectedRow, 2);
-                    gender = (String) tableModel.getValueAt(selectedRow, 3);
-                    course = (String) tableModel.getValueAt(selectedRow, 4);
-                }
-
-                showEditDialog(nameToUpdate, name, id, yearLvl, gender, course, fileName);
-            } else {
-                JOptionPane.showMessageDialog(null, "Please select a row to edit.");
-            }
-        });
+        editButton.addActionListener(e -> editData(fileName));
 
         deleteButton.addActionListener(e -> {
             int selectedRow = dataTable.getSelectedRow();
@@ -365,6 +419,7 @@ public class FileManagerGUI extends JFrame {
                 search();
             }
         });
+        sortColumnComboBox.addActionListener(e -> sortTableBySelectedColumn(header));
     }
     private void onWindowSwitched() {
         if (switchListener != null) {
@@ -434,7 +489,7 @@ public class FileManagerGUI extends JFrame {
         pack.add(textField,  BorderLayout.CENTER);
         panel.add(pack);
     }
-    private void showEditDialog(String nameToUpdate, String name, String id, String yearLvl, String gender, String course, String fileName) {
+    private void showEditDialog(String nameToUpdate, String name, String id, String yearLvl, String gender, String fileName) {
         JDialog editDialog = new JDialog(this, "Edit Item", true);
         editDialog.setLayout(new BorderLayout());
 
@@ -443,7 +498,7 @@ public class FileManagerGUI extends JFrame {
         JTextField editIdField = new JTextField(id);
         JTextField editYearLvlField = new JTextField(yearLvl);
         JTextField editGenderField = new JTextField(gender);
-        JTextField editCourseField = new JTextField(course);
+        JComboBox<String> editCourseBox = new JComboBox<>(setToArray(courseIds));
 
         editPanel.add(new JLabel("Name:"));
         editPanel.add(editNameField);
@@ -455,16 +510,15 @@ public class FileManagerGUI extends JFrame {
             editPanel.add(new JLabel("Gender:"));
             editPanel.add(editGenderField);
             editPanel.add(new JLabel("Course:"));
-            editPanel.add(editCourseField);
+            editPanel.add(editCourseBox);
         }
 
         editPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
         JButton updateButton = new JButton("Update");
         updateButton.addActionListener(e -> {
-            if (editCourseField.getText().isEmpty()) {
-                editCourseField.setText("Not Enrolled");
-            }
-            String[] updateList = {editNameField.getText(), editIdField.getText(), editYearLvlField.getText(), editGenderField.getText(), editCourseField.getText()};
+            String chosenCourse;
+            if (editCourseBox.getSelectedItem() == "None") chosenCourse = "Not Enrolled"; else chosenCourse = (String) editCourseBox.getSelectedItem();
+            String[] updateList = {editNameField.getText(), editIdField.getText(), editYearLvlField.getText(), editGenderField.getText(), chosenCourse};
             CFM.updateDataByName(nameToUpdate, updateList);
             updateTableModel();
             tableModel.fireTableDataChanged();
@@ -488,5 +542,90 @@ public class FileManagerGUI extends JFrame {
     public void setLinesListGUI(List<String> lines) {
         FileManagerGUI.lines = lines;
         updateTableModel();
+    }
+
+    /**
+     * These methods already exists before Version 2.09
+     * These are made into functions to make a more readable code
+     **/
+    private void editData (String fileName) {
+        String yearLvl = "", gender = "";
+        int selectedRow = dataTable.getSelectedRow();
+        if (selectedRow != -1) {
+            String nameToUpdate = (String) tableModel.getValueAt(selectedRow, 0);
+            String name = (String) tableModel.getValueAt(selectedRow, 0);
+            String id = (String) tableModel.getValueAt(selectedRow, 1);
+            if (Objects.equals(fileName, "Student.csv")) {
+                yearLvl = (String) tableModel.getValueAt(selectedRow, 2);
+                gender = (String) tableModel.getValueAt(selectedRow, 3);
+            }
+
+            showEditDialog(nameToUpdate, name, id, yearLvl, gender, fileName);
+        } else {
+            JOptionPane.showMessageDialog(null, "Please select a row to edit.");
+        }
+    }
+    private void addData (String fileName) {
+        String chosenCourse; boolean fileSwitch = Objects.equals(fileName, "Student.csv");
+        if (fileSwitch) {
+            if (comboBox.getSelectedItem() == "None") chosenCourse = "Not Enrolled"; else chosenCourse = (String) comboBox.getSelectedItem();
+            CFM.create(textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), chosenCourse);
+        } else {
+            CFM.create(textName.getText(), textId.getText());
+        }
+        clearTextFields(fileName);
+        updateTableModel();
+        tableModel.fireTableDataChanged();
+    }
+
+    /* Version 2.09 - After March 18 */
+    /* Version 2.09 - After March 18 */
+    /* Version 2.09 - After March 18 */
+    private static void addComboBox(int x, int width, int height, JPanel panel, JComboBox<String> comboBox) {
+        JPanel pack = new JPanel(new BorderLayout());
+        JLabel text = new JLabel();
+        text.setText("Course");
+        text.setPreferredSize(new Dimension(70, height));
+
+        pack.setBounds(x, 150, width, height);
+        pack.add(text, BorderLayout.WEST);
+        pack.add(comboBox,  BorderLayout.CENTER);
+        panel.add(pack);
+    }
+    private static String[] setToArray(Set<String> set) {
+        String[] array = new String[set.size() + 1];
+        int index = 1;
+        array[0] = "None";
+        for (String item : set) {
+            array[index++] = item;
+        }
+        return array;
+    }
+    private void sortTableByName() {
+        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[0]));
+        updateTableModel();
+    }
+    private void sortTableById() {
+        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[1]));
+        updateTableModel();
+    }
+    private void sortTableByYearLevel() {
+        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[2]));
+        updateTableModel();
+    }
+    private void sortTableByGender() {
+        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[3]));
+        updateTableModel();
+    }
+    private void sortTableByCourse() {
+        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[4]));
+        updateTableModel();
+    }
+    private void clearTextFields(String fileName) {
+        if (Objects.equals(fileName, "Student.csv")) {
+            textName.setText(""); textId.setText(""); textYearLvl.setText(""); textGender.setText("");
+        } else {
+            textName.setText(""); textId.setText("");
+        }
     }
 }
