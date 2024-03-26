@@ -127,9 +127,9 @@ public class CsvFileManager {
         }
         updateFile();
     }
-    public void deleteDataByName(String nameToDelete) {
+    public void deleteDataByID(String idToDelete) {
         // For GUI use case
-        lines.removeIf(line -> line.contains(nameToDelete));
+        lines.removeIf(line -> line.contains(idToDelete));
     }
 
 

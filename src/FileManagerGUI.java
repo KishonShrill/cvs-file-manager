@@ -10,14 +10,18 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
 import java.io.PrintWriter;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 
 public class FileManagerGUI extends JFrame {
+    private static PrintWriter fileObject;
+    private static String fileName;
     public static List<String> lines = new ArrayList<>();
-    Set<String> courseIds;
+    public Set<String> courseIds;
     public static CsvFileManager CFM;
-    final FileManagerSwitchedListener switchListener;
+    private static String[] header;
+    private final FileManagerSwitchedListener switchListener;
     final JLabel fileManager__title = new JLabel();
     private JPanel panelSideRight;
     private JTable dataTable;
@@ -30,7 +34,6 @@ public class FileManagerGUI extends JFrame {
     final JTextField textId = new JTextField();
     final JTextField textYearLvl = new JTextField();
     final JTextField textGender = new JTextField();
-//    final JTextField textCourse = new JTextField();
     private JComboBox<String> comboBox;
     private static final int MIN_PANEL_WIDTH = 400;
     private static final int MIN_PANEL_HEIGHT = 50;
@@ -38,6 +41,8 @@ public class FileManagerGUI extends JFrame {
     private JComboBox<String> searchColumnComboBox;
     private JComboBox<String> sortColumnComboBox;
     private JTextField searchField;
+    private static boolean usingSQL;
+    private static boolean switchSQL;
     private static final String[] TUTORIAL_IMAGE_PATH = {
             "./src/components/application.png",
             "./src/components/editorPane.png",
@@ -69,18 +74,49 @@ public class FileManagerGUI extends JFrame {
             FileManagerSwitchedListener switchListener,
             Set<String> courseIds,
             boolean firstTime
-    ) {
+    ) throws SQLException {
+        FileManagerGUI.fileObject = fileObject;
+        FileManagerGUI.fileName = fileName;
+        FileManagerGUI.header = header;
         this.switchListener = switchListener;
         this.courseIds = courseIds;
-        if (!fileExists(fileName)) {
-            CFM = new CsvFileManager(fileObject, fileName, initialHead, courseIds);
-        } else {
-            CFM = new CsvFileManager(fileObject, fileName, courseIds);
-        }
 
-        initializeUI(fileName, header);
-        initializeTableModel(header, fileName);
-        initializeListeners(header, fileName, fileObject);
+        if (!fileExists()) {CFM = new CsvFileManager(fileObject, fileName, initialHead, courseIds);}
+        else {CFM = new CsvFileManager(fileObject, fileName, courseIds);}
+
+        initializeUI();
+        initializeTableModel();
+        initializeListeners();
+
+        // Set up JFrame properties
+        setTitle("CSV File Manager");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        pack();
+        setLocationRelativeTo(null);
+        setVisible(true);
+
+        if (firstTime) displayTutorial();
+        tableModel.fireTableDataChanged();
+    }
+    public FileManagerGUI(
+            String[] header,
+            FileManagerSwitchedListener switchListener,
+            Set<String> courseIds,
+            boolean firstTime,
+            boolean usingSQL,
+            boolean switchSQL
+    ) throws SQLException {
+        FileManagerGUI.header = header;
+        this.switchListener = switchListener;
+        this.courseIds = courseIds;
+        FileManagerGUI.usingSQL = usingSQL;
+        FileManagerGUI.switchSQL = switchSQL;
+
+        if (!switchSQL) fileName = "Student.csv"; else fileName = "Course.csv";
+
+        initializeUI();
+        initializeTableModel();
+        initializeListeners();
 
         // Set up JFrame properties
         setTitle("CSV File Manager");
@@ -93,7 +129,7 @@ public class FileManagerGUI extends JFrame {
         tableModel.fireTableDataChanged();
     }
 
-    private void initializeUI(String fileName, String[] header) {
+    private void initializeUI() {
         JPanel panelMain = new JPanel(new BorderLayout());
         int margin = 20;
         panelMain.setBorder(BorderFactory.createEmptyBorder(margin, margin-10, margin, margin-10));
@@ -171,7 +207,7 @@ public class FileManagerGUI extends JFrame {
         // Add search panel to the main panel
         panelSideRight.add(searchPanel, BorderLayout.NORTH);
     }
-    private void initializeTableModel(String[] header, String fileName) {
+    private void initializeTableModel() throws SQLException {
         if (Objects.equals(fileName, "Course.csv")) {
             tableModel = new DefaultTableModel(null, header) {
                 @Override
@@ -224,21 +260,32 @@ public class FileManagerGUI extends JFrame {
         }
         JScrollPane scrollPane = new JScrollPane(dataTable);
         panelSideRight.add(scrollPane, BorderLayout.CENTER);
-        setLinesListGUI(CFM.getLinesList());
+        if (!usingSQL) {setLinesListGUI(CFM.getLinesList());}
+        else {
+            if (!switchSQL) {
+                DatabaseManager.readStudentRecords();
+                setLinesListGUI(DatabaseManager.getLinesList());
+            } else {
+                DatabaseManager.readCourseRecords();
+                setLinesListGUI(DatabaseManager.getCourseList());
+            }
+        }
     }
     private void updateTableModel() {
         // Clear the existing rows
         tableModel.setRowCount(0);
-
+        int count;
+        if (!usingSQL) count = 1; else count = 0;
         // Start the loop from index 1 to exclude the header row
-        for (int i = 1; i < lines.size(); i++) {
+        for (int i = count; i < lines.size(); i++) {
             String line = lines.get(i);
             String[] rowData = line.split(",");
             Object[] updatedRowData = new Object[rowData.length];
 
             for (int j = 0; j < rowData.length; j++) {
+
                 if (j == 4) {
-                    String courseId = rowData[j].trim();
+                    String courseId = rowData[j];
                     if (("Not Enrolled".equals(courseId))) {
                         updatedRowData[j] = "Not Enrolled";
                     } else if (courseIds.contains(courseId)) {
@@ -260,9 +307,10 @@ public class FileManagerGUI extends JFrame {
 
         // Clear the existing rows
         tableModel.setRowCount(0);
-
+        int count;
+        if (!usingSQL) count = 1; else count = 0;
         // Start the loop from index 1 to exclude the header row
-        for (int i = 1; i < lines.size(); i++) {
+        for (int i = count; i < lines.size(); i++) {
             String line = lines.get(i);
             String[] rowData = line.split(",");
 
@@ -274,8 +322,9 @@ public class FileManagerGUI extends JFrame {
                 // If it matches, add the row to the table model
                 Object[] updatedRowData = new Object[rowData.length];
                 for (int j = 0; j < rowData.length; j++) {
+
                     if (j == 4) {
-                        String courseId = rowData[j].trim();
+                        String courseId = rowData[j];
                         if (("Not Enrolled".equals(courseId))) {
                             updatedRowData[j] = "Not Enrolled";
                         } else if (courseIds.contains(courseId)) {
@@ -315,7 +364,7 @@ public class FileManagerGUI extends JFrame {
             }
         }
     }
-    private void initializeListeners(String[] header, String fileName, PrintWriter fileObject) {
+    private void initializeListeners() {
         addItemButton.addActionListener(e -> {
             String yearLvlInput, genderInput;
             String nameInput = textName.getText().trim();
@@ -354,22 +403,29 @@ public class FileManagerGUI extends JFrame {
                 if (option == JOptionPane.YES_OPTION) {
                     for (int i = 0; i < dataTable.getRowCount(); i++) {
                         String yearLvl = "", gender = "";
-                        String idInTable = (String) dataTable.getValueAt(i, 1); // Assuming ID is in the second column, adjust index accordingly
+                        String idInTable = ((String) dataTable.getValueAt(i, 1)).trim(); // Assuming ID is in the second column, adjust index accordingly
                         if (idInTable.equals(idToAdd)) {
-                            String nameToUpdate = (String) dataTable.getValueAt(i, 0);
+                            String IdToUpdate = (String) dataTable.getValueAt(i, 1);
                             String name = (String) dataTable.getValueAt(i, 0);
                             String id = (String) dataTable.getValueAt(i, 1);
                             if (Objects.equals(fileName, "Student.csv")) {
                                 yearLvl = (String) dataTable.getValueAt(i, 2);
                                 gender = (String) dataTable.getValueAt(i, 3);
                             }
-                            showEditDialog(nameToUpdate, name, id, yearLvl, gender, fileName);
-                            clearTextFields(fileName);
+                            showEditDialog(IdToUpdate, name, id, yearLvl, gender);
+                            clearTextFields();
+                            updateTableModel();
+                            tableModel.fireTableDataChanged();
                             return;
                         }
                     }
-                } else {clearTextFields(fileName);}
-            } else {addData(fileName);}
+                } else {clearTextFields();}
+            } else {
+                try {
+                    addData();
+                }
+                catch (SQLException ex) {throw new RuntimeException(ex);}
+            }
         });
         addItemButton.addKeyListener(new KeyListener() {
             @Override
@@ -384,34 +440,54 @@ public class FileManagerGUI extends JFrame {
             public void keyReleased(KeyEvent e) {}
         });
 
-        editButton.addActionListener(e -> editData(fileName));
+        editButton.addActionListener(e -> editData());
 
         deleteButton.addActionListener(e -> {
             int selectedRow = dataTable.getSelectedRow();
             if (selectedRow != -1) {
-                String nameToDelete = (String) tableModel.getValueAt(selectedRow, 0);
+                String IdToDelete = (String) tableModel.getValueAt(selectedRow, 1);
                 tableModel.removeRow(selectedRow);
-                CFM.deleteDataByName(nameToDelete);
+                if (!usingSQL) {CFM.deleteDataByID(IdToDelete);}
+                else {
+                    lines.removeIf(line -> line.contains(IdToDelete));
+                    if (!switchSQL) {
+                        try {
+                            DatabaseManager.deleteStudentRecord(IdToDelete);
+                            setLinesListGUI(DatabaseManager.getLinesList());
+                        }
+                        catch (SQLException ex) {throw new RuntimeException(ex);}
+                    } else {
+                        try {
+                            DatabaseManager.deleteCourseRecord(IdToDelete);
+                            setLinesListGUI(DatabaseManager.getCourseList());
+                        }
+                        catch (SQLException ex) {throw new RuntimeException(ex);}
+                    }
+                }
             } else {
                 JOptionPane.showMessageDialog(null, "Please select a row to delete.");
             }
         });
 
         switchButton.addActionListener(e -> {
-            setFinishedGUI(lines);
+            if (!usingSQL) setFinishedGUI(lines);
             lines.clear();
-            onWindowSwitched();
+            try {
+                onWindowSwitched();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
             setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             dispose();
-            fileObject.close();
+            if (!usingSQL) fileObject.close();
         });
 
         finishButton.addActionListener(e -> {
             System.out.println("\nFile has been updated and written...");
-            setFinishedGUI(lines);
+            if (!usingSQL) setFinishedGUI(lines);
             setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             dispose();
-            fileObject.close();
+            if (!usingSQL) fileObject.close();
         });
         searchField.addKeyListener(new KeyAdapter() {
             @Override
@@ -421,7 +497,7 @@ public class FileManagerGUI extends JFrame {
         });
         sortColumnComboBox.addActionListener(e -> sortTableBySelectedColumn(header));
     }
-    private void onWindowSwitched() {
+    private void onWindowSwitched() throws SQLException {
         if (switchListener != null) {
             switchListener.onFileManagerSwitched();
         }
@@ -489,7 +565,7 @@ public class FileManagerGUI extends JFrame {
         pack.add(textField,  BorderLayout.CENTER);
         panel.add(pack);
     }
-    private void showEditDialog(String nameToUpdate, String name, String id, String yearLvl, String gender, String fileName) {
+    private void showEditDialog(String IdToUpdate, String name, String id, String yearLvl, String gender) {
         JDialog editDialog = new JDialog(this, "Edit Item", true);
         editDialog.setLayout(new BorderLayout());
 
@@ -518,12 +594,64 @@ public class FileManagerGUI extends JFrame {
         updateButton.addActionListener(e -> {
             String chosenCourse;
             if (editCourseBox.getSelectedItem() == "None") chosenCourse = "Not Enrolled"; else chosenCourse = (String) editCourseBox.getSelectedItem();
-            String[] updateList = {editNameField.getText(), editIdField.getText(), editYearLvlField.getText(), editGenderField.getText(), chosenCourse};
-            CFM.updateDataByName(nameToUpdate, updateList);
-            updateTableModel();
-            tableModel.fireTableDataChanged();
-            search();
-            editDialog.dispose();
+            String[] updateList;
+            String newName = editNameField.getText(), newId = editIdField.getText(), newYearLevel = editYearLvlField.getText(), newGender = editGenderField.getText();
+            if (!switchSQL) {
+                updateList = new String[]{editNameField.getText(), editIdField.getText(), editYearLvlField.getText(), editGenderField.getText(), chosenCourse};
+            } else {
+                updateList = new String[]{editNameField.getText(), editIdField.getText()};
+            }
+
+            // Gather all the ID data from column
+            List<String> idColumnData = new ArrayList<>();
+            for (String line : lines) {
+                String[] parts = line.split(",");
+                if (parts.length > 1) {
+                    String getID = parts[1].trim();
+                    idColumnData.add(getID);
+                }
+            }
+
+            String idToAdd = editIdField.getText().trim();
+            boolean idExists = false;
+            if (switchSQL) {
+                idExists = idColumnData.stream().anyMatch(existingId -> {
+                    if (existingId.startsWith(idToAdd)) {
+                        String remainingExistingId = existingId.substring(idToAdd.length()).trim();
+                        return remainingExistingId.isEmpty();
+                    }
+                    return false;
+                });
+            }
+
+            if (idExists) {
+                JOptionPane.showMessageDialog(null,
+                        "This ID already exists in the Database.",
+                        "ID Exists",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                if (!usingSQL) {CFM.updateDataByName(IdToUpdate, updateList);}
+                else {
+                    if (!switchSQL) {
+                        try {
+                            DatabaseManager.updateStudentRecord(IdToUpdate, newName, newId, newYearLevel, newGender, chosenCourse);                            DatabaseManager.readStudentRecords();
+                            DatabaseManager.readStudentRecords();
+                            setLinesListGUI(DatabaseManager.getLinesList());
+                        }
+                        catch (SQLException ex) {throw new RuntimeException(ex);}
+                    } else {
+                        try {
+                            DatabaseManager.updateCourseRecord(IdToUpdate, editNameField.getText(), editIdField.getText());
+                            DatabaseManager.readCourseRecords();
+                            setLinesListGUI(DatabaseManager.getCourseList());
+                        }
+                        catch (SQLException ex) {throw new RuntimeException(ex);}
+                    }
+                }
+                updateTableModel();
+                tableModel.fireTableDataChanged();
+                editDialog.dispose();
+            }
         });
 
         editDialog.add(editPanel, BorderLayout.CENTER);
@@ -532,7 +660,7 @@ public class FileManagerGUI extends JFrame {
         editDialog.setLocationRelativeTo(this);
         editDialog.setVisible(true);
     }
-    private static boolean fileExists(String fileName) {
+    private static boolean fileExists() {
         File file = new File(fileName);
         return file.exists() && !file.isDirectory() && file.length() > 0;
     }
@@ -542,17 +670,18 @@ public class FileManagerGUI extends JFrame {
     public void setLinesListGUI(List<String> lines) {
         FileManagerGUI.lines = lines;
         updateTableModel();
+        tableModel.fireTableDataChanged();
     }
 
     /**
      * These methods already exists before Version 2.09
      * These are made into functions to make a more readable code
      **/
-    private void editData (String fileName) {
+    private void editData () {
         String yearLvl = "", gender = "";
         int selectedRow = dataTable.getSelectedRow();
         if (selectedRow != -1) {
-            String nameToUpdate = (String) tableModel.getValueAt(selectedRow, 0);
+            String IdToUpdate = (String) tableModel.getValueAt(selectedRow, 1);
             String name = (String) tableModel.getValueAt(selectedRow, 0);
             String id = (String) tableModel.getValueAt(selectedRow, 1);
             if (Objects.equals(fileName, "Student.csv")) {
@@ -560,20 +689,34 @@ public class FileManagerGUI extends JFrame {
                 gender = (String) tableModel.getValueAt(selectedRow, 3);
             }
 
-            showEditDialog(nameToUpdate, name, id, yearLvl, gender, fileName);
+            showEditDialog(IdToUpdate, name, id, yearLvl, gender);
         } else {
             JOptionPane.showMessageDialog(null, "Please select a row to edit.");
         }
     }
-    private void addData (String fileName) {
+    private void addData() throws SQLException {
         String chosenCourse; boolean fileSwitch = Objects.equals(fileName, "Student.csv");
         if (fileSwitch) {
             if (comboBox.getSelectedItem() == "None") chosenCourse = "Not Enrolled"; else chosenCourse = (String) comboBox.getSelectedItem();
-            CFM.create(textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), chosenCourse);
+            if (!usingSQL) {CFM.create(textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), chosenCourse);}
+            else {
+                DatabaseManager.createStudentRecord(textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), chosenCourse);}
         } else {
-            CFM.create(textName.getText(), textId.getText());
+            if (!usingSQL) {CFM.create(textName.getText(), textId.getText());}
+            else {
+                DatabaseManager.createCourseRecord(textName.getText(), textId.getText());}
         }
-        clearTextFields(fileName);
+        if (usingSQL) {
+            if (!switchSQL) {
+                DatabaseManager.readStudentRecords();
+                setLinesListGUI(DatabaseManager.getLinesList());
+            }
+            else {
+                DatabaseManager.readCourseRecords();
+                setLinesListGUI(DatabaseManager.getCourseList());
+            }
+        }
+        clearTextFields();
         updateTableModel();
         tableModel.fireTableDataChanged();
     }
@@ -621,7 +764,7 @@ public class FileManagerGUI extends JFrame {
         lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[4]));
         updateTableModel();
     }
-    private void clearTextFields(String fileName) {
+    private void clearTextFields() {
         if (Objects.equals(fileName, "Student.csv")) {
             textName.setText(""); textId.setText(""); textYearLvl.setText(""); textGender.setText("");
         } else {

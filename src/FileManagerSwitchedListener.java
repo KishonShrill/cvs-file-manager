@@ -1,3 +1,5 @@
+import java.sql.SQLException;
+
 public interface FileManagerSwitchedListener {
-    void onFileManagerSwitched();
+    void onFileManagerSwitched() throws SQLException;
 }

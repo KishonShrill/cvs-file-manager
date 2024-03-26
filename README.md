@@ -23,6 +23,8 @@ This Java program provides a flexible and user-friendly way to manage CSV files,
    - Edit data in a table-based UI.
    - Add, edit, and delete records visually.
    - Switch between "Student.csv" and "Course.csv" with ease.
+3. **Database Mode**
+   - Does the same thing as GUI mode but are stored on the MySQL database.
 
 ## Usage
 ### **Terminal & GUI Mode**
@@ -43,7 +45,30 @@ private static final boolean activateGUI = false;
 - To switch from the terminal to the GUI, compile and run the FileManagerGUI class separately.
 
 ## Dependencies
+### Terminal and GUI Version
 - The program is written in Java and does not have external dependencies beyond the standard Java libraries.
+
+### Java Version
+- The program is written in Java and does not have external dependencies beyond the standard Java libraries.
+
+#### MySQL Version
+- If you are using the MySQL version of the program, you will need to download a JAR file from [MySQL Connector/J](https://dev.mysql.com/downloads/connector/j/).
+- For Windows users:
+    - Set the Operating System to "Platform Independent" on the download page.
+    - Select the ZIP file called "Platform Independent (Architecture Independent), ZIP Archive".
+    - After downloading, unzip the file.
+    - Move the contents of the unzipped folder to where the `Main.java` file is located.
+
+#### IntelliJ IDEA Setup (Optional)
+- If you are using IntelliJ IDEA, follow these steps to add the MySQL connector JAR file to your project:
+    1. Open IntelliJ IDEA.
+    2. Navigate to File -> Project Structure.
+    3. In the Project Settings section, go to Modules.
+    4. Click on Dependencies.
+    5. Click the plus icon to add a new dependency.
+    6. Choose the option that says "JARs or Directories".
+    7. Select the location where the MySQL connector JAR file is located.
+    8. Click Apply to save the changes.
 
 ## Notes
 - Make sure to have Java installed on your system to run the program.
