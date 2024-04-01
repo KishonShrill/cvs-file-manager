@@ -1,6 +1,10 @@
 # CSV File Manager
 This Java program provides a flexible and user-friendly way to manage CSV files, allowing users to interact with the data through both a terminal-based interface and a graphical user interface (GUI). The program supports two types of CSV files: "Student.csv" and "Course.csv."
 
+## ✨ Updated Features - v.3.01  ✨
+- **Added Resources**: Easily import files into the database with the new resources: Query.sql, Student.csv, and Course.csv. Simplify the data import process and streamline database management.
+- **Improved Error Handling**: Enhance user experience by displaying informative pop-up messages when errors occur. Simplify debugging and troubleshooting with clearer error notifications.
+
 ## ✨ Updated Features - v.3.00  ✨
 - **Enhanced Database Integration**: Seamlessly connect your application to a MySQL database for improved data management and scalability. Enjoy faster performance and enhanced reliability with our MySQL integration.
 - **Dynamic SQL Queries**: Take full control of your data retrieval and manipulation with dynamic SQL queries. Customize your queries based on specific criteria to extract the exact information you need.
