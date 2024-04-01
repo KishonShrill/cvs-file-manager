@@ -302,8 +302,8 @@ public class FileManagerGUI extends JFrame {
         tableModel.fireTableDataChanged();
     }
     private void search() {
-        String searchText = searchField.getText().toLowerCase(); // Convert search text to lowercase for case-insensitive search
-        int columnIndex = searchColumnComboBox.getSelectedIndex(); // Get the index of the selected column to search
+        String searchText = searchField.getText().toLowerCase();
+        int columnIndex = searchColumnComboBox.getSelectedIndex();
 
         // Clear the existing rows
         tableModel.setRowCount(0);
@@ -424,7 +424,10 @@ public class FileManagerGUI extends JFrame {
                 try {
                     addData();
                 }
-                catch (SQLException ex) {throw new RuntimeException(ex);}
+                catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(null, "The header of the data does not match the header of the Database. Please ensure that the column names in the CSV file match the column names in the Database.", "Column Name Mismatch", JOptionPane.ERROR_MESSAGE);
+                    throw new RuntimeException(ex);
+                }
             }
         });
         addItemButton.addKeyListener(new KeyListener() {
