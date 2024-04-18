@@ -217,6 +217,8 @@ public class FileManagerGUI extends JFrame {
                 }
             };
             dataTable = new JTable(tableModel);
+            dataTable.setIntercellSpacing(new Dimension(20, 10));
+            dataTable.setRowHeight(30);
             dataTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         }
         else {
@@ -232,6 +234,8 @@ public class FileManagerGUI extends JFrame {
                 }
             };
             dataTable = new JTable(tableModel);
+            dataTable.setIntercellSpacing(new Dimension(20, 10));
+            dataTable.setRowHeight(30);
             dataTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
             DefaultTableCellRenderer courseRenderer = new DefaultTableCellRenderer() {
@@ -241,6 +245,7 @@ public class FileManagerGUI extends JFrame {
 
                     Component cellComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                     String courseId = value.toString().trim();
+
 
                     if (column == 4) {
                         if (!"Not Enrolled".equals(courseId)) {
@@ -357,7 +362,7 @@ public class FileManagerGUI extends JFrame {
             // Sort the table based on the selected column
             switch (selectedColumn) {
                 case "Name" -> sortTableByName();
-                case "Id#" -> sortTableById();
+                case "Id" -> sortTableById();
                 case "Year Lvl" -> sortTableByYearLevel();
                 case "Gender" -> sortTableByGender();
                 case "Course" -> sortTableByCourse();
@@ -448,29 +453,36 @@ public class FileManagerGUI extends JFrame {
         deleteButton.addActionListener(e -> {
             int selectedRow = dataTable.getSelectedRow();
             if (selectedRow != -1) {
-                String IdToDelete = (String) tableModel.getValueAt(selectedRow, 1);
-                tableModel.removeRow(selectedRow);
-                if (!usingSQL) {CFM.deleteDataByID(IdToDelete);}
-                else {
-                    lines.removeIf(line -> line.contains(IdToDelete));
-                    if (!switchSQL) {
-                        try {
-                            DatabaseManager.deleteStudentRecord(IdToDelete);
-                            setLinesListGUI(DatabaseManager.getLinesList());
-                        }
-                        catch (SQLException ex) {throw new RuntimeException(ex);}
+                int option = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete this row?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                if (option == JOptionPane.YES_OPTION) {
+                    String IdToDelete = (String) tableModel.getValueAt(selectedRow, 1);
+                    tableModel.removeRow(selectedRow);
+                    if (!usingSQL) {
+                        CFM.deleteDataByID(IdToDelete);
                     } else {
-                        try {
-                            DatabaseManager.deleteCourseRecord(IdToDelete);
-                            setLinesListGUI(DatabaseManager.getCourseList());
+                        lines.removeIf(line -> line.contains(IdToDelete));
+                        if (!switchSQL) {
+                            try {
+                                DatabaseManager.deleteStudentRecord(IdToDelete);
+                                setLinesListGUI(DatabaseManager.getLinesList());
+                            } catch (SQLException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        } else {
+                            try {
+                                DatabaseManager.deleteCourseRecord(IdToDelete);
+                                setLinesListGUI(DatabaseManager.getCourseList());
+                            } catch (SQLException ex) {
+                                throw new RuntimeException(ex);
+                            }
                         }
-                        catch (SQLException ex) {throw new RuntimeException(ex);}
                     }
                 }
             } else {
                 JOptionPane.showMessageDialog(null, "Please select a row to delete.");
             }
         });
+
 
         switchButton.addActionListener(e -> {
             if (!usingSQL) setFinishedGUI(lines);
