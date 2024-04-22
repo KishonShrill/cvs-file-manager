@@ -608,7 +608,7 @@ public class FileManagerGUI extends JFrame {
         JButton updateButton = new JButton("Update");
         updateButton.addActionListener(e -> {
             String chosenCourse;
-            if (editCourseBox.getSelectedItem() == "None") chosenCourse = "Not Enrolled"; else chosenCourse = (String) editCourseBox.getSelectedItem();
+            if (editCourseBox.getSelectedItem() == "None") chosenCourse = null; else chosenCourse = (String) editCourseBox.getSelectedItem();
             String[] updateList;
             String newName = editNameField.getText(), newId = editIdField.getText(), newYearLevel = editYearLvlField.getText(), newGender = editGenderField.getText();
             if (!switchSQL) {
@@ -712,7 +712,7 @@ public class FileManagerGUI extends JFrame {
     private void addData() throws SQLException {
         String chosenCourse; boolean fileSwitch = Objects.equals(fileName, "Student.csv");
         if (fileSwitch) {
-            if (comboBox.getSelectedItem() == "None") chosenCourse = "Not Enrolled"; else chosenCourse = (String) comboBox.getSelectedItem();
+            if (comboBox.getSelectedItem() == "None") chosenCourse = null; else chosenCourse = (String) comboBox.getSelectedItem();
             if (!usingSQL) {CFM.create(textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), chosenCourse);}
             else {
                 DatabaseManager.createStudentRecord(textName.getText(), textId.getText(), textYearLvl.getText(), textGender.getText(), chosenCourse);}

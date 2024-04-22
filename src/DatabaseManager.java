@@ -1,3 +1,5 @@
+import com.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
+
 import javax.swing.*;
 import java.sql.*;
 import java.util.ArrayList;
@@ -27,13 +29,15 @@ public class DatabaseManager {
     // Create operation
     public static void createStudentRecord(String name, String id, String yearLevel, String gender, String course) throws SQLException {
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement("INSERT INTO student (StudentName, ID, YearLevel, Gender, Course) VALUES (?, ?, ?, ?, ?)")) {
+             PreparedStatement stmt = conn.prepareStatement("INSERT INTO student (StudentName, ID, YearLevel, Gender, CourseID) VALUES (?, ?, ?, ?, ?)")) {
             stmt.setString(1, name);
             stmt.setString(2, id);
             stmt.setString(3, yearLevel);
             stmt.setString(4, gender);
             stmt.setString(5, course);
             stmt.executeUpdate();
+        } catch (MysqlDataTruncation e) {
+            JOptionPane.showMessageDialog(null, "Input is more or less than the required amount: " + e.getMessage());
         }
     }
     public static void createCourseRecord(String name, String id) throws SQLException {
@@ -88,7 +92,7 @@ public class DatabaseManager {
     // Update operation
     public static void updateStudentRecord(String id, String newName, String newId, String newYearLevel, String newGender, String newCourse) throws SQLException {
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement("UPDATE student SET StudentName = ?, ID = ?, YearLevel = ?, Gender = ?, Course = ? WHERE ID = ?")) {
+             PreparedStatement stmt = conn.prepareStatement("UPDATE student SET StudentName = ?, ID = ?, YearLevel = ?, Gender = ?, CourseID = ? WHERE ID = ?")) {
             stmt.setString(1, newName);
             stmt.setString(2, newId);
             stmt.setString(3, newYearLevel);
