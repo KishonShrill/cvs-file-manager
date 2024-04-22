@@ -5,9 +5,7 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.*;
 import java.io.File;
 import java.io.PrintWriter;
 import java.sql.SQLException;
@@ -244,19 +242,21 @@ public class FileManagerGUI extends JFrame {
                     JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
 
                     Component cellComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                    String courseId = value.toString().trim();
 
+                    // Check if value is not null
+                    if (value != null) {
+                        String courseId = value.toString().trim();
 
-                    if (column == 4) {
-                        if (!"Not Enrolled".equals(courseId)) {
+                        if (column == 4) {
                             if (isCourseAvailable(courseId)) {
                                 cellComponent.setBackground(Color.GREEN);
                             } else {
                                 cellComponent.setBackground(Color.YELLOW);
                             }
-                        } else {
-                            cellComponent.setBackground(Color.RED);
                         }
+                    } else {
+                        // Set background to red if value is null
+                        cellComponent.setBackground(Color.RED);
                     }
                     return cellComponent;
                 }
@@ -288,15 +288,12 @@ public class FileManagerGUI extends JFrame {
             Object[] updatedRowData = new Object[rowData.length];
 
             for (int j = 0; j < rowData.length; j++) {
-
                 if (j == 4) {
                     String courseId = rowData[j];
-                    if (("Not Enrolled".equals(courseId))) {
-                        updatedRowData[j] = "Not Enrolled";
-                    } else if (courseIds.contains(courseId)) {
+                    if (courseIds.contains(courseId)) {
                         updatedRowData[j] = courseId;
                     } else {
-                        updatedRowData[j] = "N/A";
+                        updatedRowData[j] = null;
                     }
                 } else {
                     updatedRowData[j] = rowData[j];
@@ -306,6 +303,7 @@ public class FileManagerGUI extends JFrame {
         }
         tableModel.fireTableDataChanged();
     }
+
     private void search() {
         String searchText = searchField.getText().toLowerCase();
         int columnIndex = searchColumnComboBox.getSelectedIndex();
@@ -327,15 +325,12 @@ public class FileManagerGUI extends JFrame {
                 // If it matches, add the row to the table model
                 Object[] updatedRowData = new Object[rowData.length];
                 for (int j = 0; j < rowData.length; j++) {
-
                     if (j == 4) {
                         String courseId = rowData[j];
-                        if (("Not Enrolled".equals(courseId))) {
-                            updatedRowData[j] = "Not Enrolled";
-                        } else if (courseIds.contains(courseId)) {
+                        if (courseIds.contains(courseId)) {
                             updatedRowData[j] = courseId;
                         } else {
-                            updatedRowData[j] = "N/A";
+                            updatedRowData[j] = null;
                         }
                     } else {
                         updatedRowData[j] = rowData[j];
@@ -448,12 +443,27 @@ public class FileManagerGUI extends JFrame {
             public void keyReleased(KeyEvent e) {}
         });
 
-        editButton.addActionListener(e -> editData());
+        editButton.addActionListener(e -> {
+            if (Objects.equals(fileName, "Course.csv")) {
+                JOptionPane.showMessageDialog(null, "You cannot edit courseName and ID on courses table!!!", "Information", JOptionPane.INFORMATION_MESSAGE);
+            } else editData();
+        });
+        if (Objects.equals(fileName, "Course.csv")) {
+            editButton.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    editButton.setToolTipText("You cannot edit courseName and ID on courses table!!!");
+                }
+            });
+        }
 
         deleteButton.addActionListener(e -> {
             int selectedRow = dataTable.getSelectedRow();
             if (selectedRow != -1) {
-                int option = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete this row?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                int option;
+                if (Objects.equals(fileName, "Student.csv")) {
+                    option = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete this row?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                } else option = JOptionPane.showConfirmDialog(null, "Deleting in this course will set all students with this specific course to NULL.\nAre you sure you want to delete this course?", "Confirmation", JOptionPane.YES_NO_OPTION);
                 if (option == JOptionPane.YES_OPTION) {
                     String IdToDelete = (String) tableModel.getValueAt(selectedRow, 1);
                     tableModel.removeRow(selectedRow);
@@ -482,7 +492,6 @@ public class FileManagerGUI extends JFrame {
                 JOptionPane.showMessageDialog(null, "Please select a row to delete.");
             }
         });
-
 
         switchButton.addActionListener(e -> {
             if (!usingSQL) setFinishedGUI(lines);
@@ -760,23 +769,28 @@ public class FileManagerGUI extends JFrame {
         return array;
     }
     private void sortTableByName() {
-        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[0]));
+        if (!usingSQL) {lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[0]));}
+        else lines.subList(0, lines.size()).sort(Comparator.comparing(line -> line.split(",")[0]));
         updateTableModel();
     }
     private void sortTableById() {
-        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[1]));
+        if (!usingSQL) {lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[1]));}
+        else lines.subList(0, lines.size()).sort(Comparator.comparing(line -> line.split(",")[1]));
         updateTableModel();
     }
     private void sortTableByYearLevel() {
-        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[2]));
+        if (!usingSQL) {lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[2]));}
+        else lines.subList(0, lines.size()).sort(Comparator.comparing(line -> line.split(",")[2]));
         updateTableModel();
     }
     private void sortTableByGender() {
-        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[3]));
+        if (!usingSQL) {lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[3]));}
+        else lines.subList(0, lines.size()).sort(Comparator.comparing(line -> line.split(",")[3]));
         updateTableModel();
     }
     private void sortTableByCourse() {
-        lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[4]));
+        if (!usingSQL) {lines.subList(1, lines.size()).sort(Comparator.comparing(line -> line.split(",")[4]));}
+        else lines.subList(0, lines.size()).sort(Comparator.comparing(line -> line.split(",")[4]));
         updateTableModel();
     }
     private void clearTextFields() {

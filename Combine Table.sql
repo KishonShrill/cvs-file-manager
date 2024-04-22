@@ -1,4 +1,4 @@
-CREATE TABLE CombinedTable AS
+#CREATE TABLE CombinedTable AS
 SELECT 
     student.StudentName, 
     student.ID, 
@@ -7,5 +7,17 @@ SELECT
     student.CourseID,
     course.CourseName
 FROM student
-JOIN course
-    ON student.CourseID = course.ID;
+LEFT JOIN course
+    ON student.CourseID = course.ID
+
+UNION
+
+SELECT 
+    student.StudentName, 
+    student.ID, 
+    student.YearLevel, 
+    student.Gender,
+    student.CourseID,
+    NULL AS CourseName
+FROM student
+WHERE student.CourseID IS NULL;

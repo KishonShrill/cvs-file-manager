@@ -113,6 +113,7 @@ public class DatabaseManager {
     }
 
 
+
     // Delete operation
     public static void deleteStudentRecord(String id) throws SQLException {
         try (Connection conn = getConnection();
@@ -122,12 +123,21 @@ public class DatabaseManager {
         }
     }
     public static void deleteCourseRecord(String id) throws SQLException {
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement("DELETE FROM course WHERE ID = ?")) {
-            stmt.setString(1, id);
-            stmt.executeUpdate();
+        try (Connection conn = getConnection()) {
+            // Step 1: Update CourseID in student table to null
+            try (PreparedStatement stmtUpdate = conn.prepareStatement("UPDATE student SET CourseID = NULL WHERE CourseID = ?")) {
+                stmtUpdate.setString(1, id);
+                stmtUpdate.executeUpdate();
+            }
+
+            // Step 2: Delete the record from the course table
+            try (PreparedStatement stmtDelete = conn.prepareStatement("DELETE FROM course WHERE ID = ?")) {
+                stmtDelete.setString(1, id);
+                stmtDelete.executeUpdate();
+            }
         }
     }
+
 
     public static List<String> getLinesList() {
         return studentLines;
