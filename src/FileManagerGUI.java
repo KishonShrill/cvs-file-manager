@@ -9,8 +9,10 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.*;
 import java.util.List;
+import java.util.regex.*;
 
 public class FileManagerGUI extends JFrame {
     private static PrintWriter fileObject;
@@ -148,12 +150,14 @@ public class FileManagerGUI extends JFrame {
 
         int X_AXIS = 15, TEXT_HEIGHT = 20, TEXT_WIDTH = 190;
         addTextField(X_AXIS,  30,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Name", textName);
-        addTextField(X_AXIS,  60,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Id#", textId);
         if (Objects.equals(fileName, "Student.csv")) {
+            addTextField(X_AXIS,  60,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "ID#", textId);
             addTextField(X_AXIS,  90,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Year Lvl", textYearLvl);
             addTextField(X_AXIS, 120,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Gender", textGender);
             comboBox = new JComboBox<>(setToArray(courseIds));
             addComboBox(X_AXIS, TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, comboBox);
+        } else {
+            addTextField(X_AXIS,  60,TEXT_WIDTH, TEXT_HEIGHT, panelSideLeft, "Code", textId);
         }
         addItemButton.setBounds(85, 180, 120, 70);
 
@@ -192,8 +196,10 @@ public class FileManagerGUI extends JFrame {
         searchField = new JTextField(15);
 
         // Add components to the respective panels
-        sortPanel.add(sortLabel);
-        sortPanel.add(sortColumnComboBox);
+        if (Objects.equals(fileName, "Student.csv")) {
+            sortPanel.add(sortLabel);
+            sortPanel.add(sortColumnComboBox);
+        }
         searchInputPanel.add(searchLabel);
         searchInputPanel.add(searchColumnComboBox);
         searchInputPanel.add(searchField);
@@ -357,7 +363,7 @@ public class FileManagerGUI extends JFrame {
             // Sort the table based on the selected column
             switch (selectedColumn) {
                 case "Name" -> sortTableByName();
-                case "Id" -> sortTableById();
+                case "ID" -> sortTableById();
                 case "Year Lvl" -> sortTableByYearLevel();
                 case "Gender" -> sortTableByGender();
                 case "Course" -> sortTableByCourse();
@@ -365,6 +371,8 @@ public class FileManagerGUI extends JFrame {
         }
     }
     private void initializeListeners() {
+        String regex = "\\d{4}-\\d{4}";
+        Pattern pattern = Pattern.compile(regex);
         addItemButton.addActionListener(e -> {
             String yearLvlInput, genderInput;
             String nameInput = textName.getText().trim();
@@ -377,8 +385,14 @@ public class FileManagerGUI extends JFrame {
                     return;
                 }
             }
+
             if (nameInput.isEmpty() || idInput.isEmpty()) {
                 JOptionPane.showMessageDialog(null, "Please input all required data!");
+                return;
+            }
+            Matcher matcher = pattern.matcher(idInput);
+            if (Objects.equals(fileName, "Student.csv") && !matcher.matches()) {
+                JOptionPane.showMessageDialog(null, "ID must be in the format XXXX-XXXX, Please try again.");
                 return;
             }
 
@@ -396,33 +410,40 @@ public class FileManagerGUI extends JFrame {
             boolean idExists = idColumnData.contains(idToAdd);
 
             if (idExists) {
-                int option = JOptionPane.showConfirmDialog(null,
-                        "This ID already exists in the system. Would you like to overwrite this ID instead?",
-                        "ID Exists",
-                        JOptionPane.YES_NO_OPTION);
-                if (option == JOptionPane.YES_OPTION) {
-                    for (int i = 0; i < dataTable.getRowCount(); i++) {
-                        String yearLvl = "", gender = "";
-                        String idInTable = ((String) dataTable.getValueAt(i, 1)).trim(); // Assuming ID is in the second column, adjust index accordingly
-                        if (idInTable.equals(idToAdd)) {
-                            String IdToUpdate = (String) dataTable.getValueAt(i, 1);
-                            String name = (String) dataTable.getValueAt(i, 0);
-                            String id = (String) dataTable.getValueAt(i, 1);
-                            if (Objects.equals(fileName, "Student.csv")) {
-                                yearLvl = (String) dataTable.getValueAt(i, 2);
-                                gender = (String) dataTable.getValueAt(i, 3);
+                if (usingSQL) JOptionPane.showMessageDialog(null, "This ID already exists in the system.");
+                if (!usingSQL) {
+                    int option = JOptionPane.showConfirmDialog(null,
+                            "This ID already exists in the system. Would you like to overwrite this ID instead?",
+                            "ID Exists",
+                            JOptionPane.YES_NO_OPTION);
+                    if (option == JOptionPane.YES_OPTION) {
+                        for (int i = 0; i < dataTable.getRowCount(); i++) {
+                            String yearLvl = "", gender = "";
+                            String idInTable = ((String) dataTable.getValueAt(i, 1)).trim(); // Assuming ID is in the second column, adjust index accordingly
+                            if (idInTable.equals(idToAdd)) {
+                                String IdToUpdate = (String) dataTable.getValueAt(i, 1);
+                                String name = (String) dataTable.getValueAt(i, 0);
+                                String id = (String) dataTable.getValueAt(i, 1);
+                                if (Objects.equals(fileName, "Student.csv")) {
+                                    yearLvl = (String) dataTable.getValueAt(i, 2);
+                                    gender = (String) dataTable.getValueAt(i, 3);
+                                }
+                                showEditDialog(IdToUpdate, name, id, yearLvl, gender);
+                                clearTextFields();
+                                updateTableModel();
+                                tableModel.fireTableDataChanged();
+                                return;
                             }
-                            showEditDialog(IdToUpdate, name, id, yearLvl, gender);
-                            clearTextFields();
-                            updateTableModel();
-                            tableModel.fireTableDataChanged();
-                            return;
                         }
-                    }
-                } else {clearTextFields();}
+                    } else {clearTextFields();}
+                }
             } else {
                 try {
                     addData();
+                }
+                catch (SQLIntegrityConstraintViolationException ex) {
+                    JOptionPane.showMessageDialog(null, "This 'Name' already exists in the Database.", "Duplication Entry", JOptionPane.INFORMATION_MESSAGE);
+                    throw new RuntimeException(ex);
                 }
                 catch (SQLException ex) {
                     JOptionPane.showMessageDialog(null, "The header of the data does not match the header of the Database. Please ensure that the column names in the CSV file match the column names in the Database.", "Column Name Mismatch", JOptionPane.ERROR_MESSAGE);
@@ -444,9 +465,7 @@ public class FileManagerGUI extends JFrame {
         });
 
         editButton.addActionListener(e -> {
-            if (Objects.equals(fileName, "Course.csv")) {
-                JOptionPane.showMessageDialog(null, "You cannot edit courseName and ID on courses table!!!", "Information", JOptionPane.INFORMATION_MESSAGE);
-            } else editData();
+            editData();
         });
         if (Objects.equals(fileName, "Course.csv")) {
             editButton.addMouseListener(new MouseAdapter() {
@@ -648,34 +667,34 @@ public class FileManagerGUI extends JFrame {
                 });
             }
 
-            if (idExists) {
-                JOptionPane.showMessageDialog(null,
-                        "This ID already exists in the Database.",
-                        "ID Exists",
-                        JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                if (!usingSQL) {CFM.updateDataByName(IdToUpdate, updateList);}
-                else {
-                    if (!switchSQL) {
-                        try {
-                            DatabaseManager.updateStudentRecord(IdToUpdate, newName, newId, newYearLevel, newGender, chosenCourse);                            DatabaseManager.readStudentRecords();
-                            DatabaseManager.readStudentRecords();
-                            setLinesListGUI(DatabaseManager.getLinesList());
-                        }
-                        catch (SQLException ex) {throw new RuntimeException(ex);}
-                    } else {
-                        try {
-                            DatabaseManager.updateCourseRecord(IdToUpdate, editNameField.getText(), editIdField.getText());
-                            DatabaseManager.readCourseRecords();
-                            setLinesListGUI(DatabaseManager.getCourseList());
-                        }
-                        catch (SQLException ex) {throw new RuntimeException(ex);}
+//            if (idExists) {
+//                JOptionPane.showMessageDialog(null,
+//                        "This ID already exists in the Database.",
+//                        "ID Exists",
+//                        JOptionPane.INFORMATION_MESSAGE);
+//            } else {
+            if (!usingSQL) {CFM.updateDataByName(IdToUpdate, updateList);}
+            else {
+                if (!switchSQL) {
+                    try {
+                        DatabaseManager.updateStudentRecord(IdToUpdate, newName, newId, newYearLevel, newGender, chosenCourse);
+                        DatabaseManager.readStudentRecords();
+                        setLinesListGUI(DatabaseManager.getLinesList());
                     }
+                    catch (SQLException ex) {throw new RuntimeException(ex);}
+                } else {
+                    try {
+                        DatabaseManager.updateCourseRecord(IdToUpdate, editNameField.getText(), editIdField.getText());
+                        DatabaseManager.readCourseRecords();
+                        setLinesListGUI(DatabaseManager.getCourseList());
+                    }
+                    catch (SQLException ex) {throw new RuntimeException(ex);}
                 }
-                updateTableModel();
-                tableModel.fireTableDataChanged();
-                editDialog.dispose();
             }
+            sortTableBySelectedColumn(header);
+            tableModel.fireTableDataChanged();
+            editDialog.dispose();
+//            }
         });
 
         editDialog.add(editPanel, BorderLayout.CENTER);

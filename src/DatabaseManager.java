@@ -68,7 +68,7 @@ public class DatabaseManager {
     }
     public static void readCourseRecords() throws SQLException {
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM course");
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM course ORDER BY CourseName ASC");
              ResultSet rs = stmt.executeQuery()) {
             courseLines = new ArrayList<>();
             while (rs.next()) {

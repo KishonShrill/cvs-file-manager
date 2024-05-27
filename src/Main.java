@@ -2,8 +2,8 @@ import java.io.*;
 import java.sql.SQLException;
 
 public class Main {
-    private static final String[] studentArr = {"Name", "Id", "Year Lvl", "Gender", "Course"};
-    private static final String[] courseArr = {"Name", "Id"};
+    private static final String[] studentArr = {"Name", "ID", "Year Lvl", "Gender", "Course"};
+    private static final String[] courseArr = {"Course Name", "Course Code"};
     private static final boolean activateGUI = true;
     private static boolean switchFile = false;
     private static final boolean usingSQL = true;
